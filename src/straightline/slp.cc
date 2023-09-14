@@ -5,7 +5,7 @@
 namespace A {
 int A::CompoundStm::MaxArgs() const {
   // TODO: put your code here (lab1).
-  int max_args_left = stm1->MaxArgs();
+  int max_args_left = stm1 -> MaxArgs();
   int max_args_right =  stm2->MaxArgs();
 
   return max_args_left >= max_args_right ? max_args_left : max_args_right;
