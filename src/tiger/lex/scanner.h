@@ -17,6 +17,7 @@ public:
       : ScannerBase(std::cin, out), comment_level_(1), char_pos_(1),
         errormsg_(std::make_unique<err::ErrorMsg>(fname)) {
     switchStreams(errormsg_->infile_, out);
+    string_buf_.clear();
   }
 
   /**
@@ -63,6 +64,9 @@ private:
   void postCode(PostEnum__ type);
   void adjust();
   void adjustStr();
+  void addChar2StrBuf(char c);
+  void addStr2StrBuf(const std::string& s);
+  void strOver();
 };
 
 inline int Scanner::lex() { return lex__(); }
@@ -83,5 +87,18 @@ inline void Scanner::adjust() {
 }
 
 inline void Scanner::adjustStr() { char_pos_ += length(); }
+
+inline void Scanner::addChar2StrBuf(char c){
+  string_buf_.push_back(c);
+}
+
+inline void Scanner::addStr2StrBuf(const std::string& s){
+  string_buf_.append(s);
+}
+
+inline void Scanner::strOver() {
+  setMatched(string_buf_);
+  string_buf_.clear();
+}
 
 #endif // TIGER_LEX_SCANNER_H_
