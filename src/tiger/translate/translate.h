@@ -57,11 +57,25 @@ public:
   Level *parent_;
 
   /* TODO: Put your lab5 code here */
+  Level(tr::Level *parent, temp::Label *name, std::list<bool> *formals)
+    :parent_(parent){
+      // todo
+      frame_ = nullptr;
+    }
 };
 
 class ProgTr {
 public:
   // TODO: Put your lab5 code here */
+  ProgTr(std::unique_ptr<absyn::AbsynTree> absyn_tree, std::unique_ptr<err::ErrorMsg> error_msg)
+    :absyn_tree_(std::move(absyn_tree)),
+    errormsg_(std::move(error_msg)),
+    main_level_(new tr::Level(nullptr, temp::LabelFactory::NamedLabel("tigermain"), nullptr)),
+    tenv_(new env::TEnv),
+    venv_(new env::VEnv){
+      FillBaseTEnv();
+      FillBaseVEnv();
+    }
 
   /**
    * Translate IR tree
