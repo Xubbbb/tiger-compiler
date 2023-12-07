@@ -791,7 +791,7 @@ tr::ExpAndTy *ForExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
    * if i == limit goto done
    * Loop: i := i + 1
    *       body
-   *       if i <= limit goto Loop
+   *       if i < limit goto Loop
    * done
   */
   auto it_access_exp = it_var_access->access_->ToExp(tr::FindFP(level, level));
