@@ -41,6 +41,13 @@ private:
   std::list<temp::Label **> patch_list_;
 };
 
+/**
+ * In the phase of semantic analysis,
+ * VarDec::Translate creates a “new location” tr::Access for each variable in level
+ * (by calling tr::Access::AllocLocal(level, escape_))
+ * Semant records this tr::Access in its VarEntry
+ * Semant uses this access later when generating machine code
+*/
 class Access {
 public:
   Level *level_;
@@ -51,17 +58,19 @@ public:
   static Access *AllocLocal(Level *level, bool escape);
 };
 
+/**
+ * In the phase of semantic analysis,
+ * FunctionDec::Translate creates a new “nesting level” for each function by calling tr::Level::NewLevel(),
+ * NewLevel will call frame::Frame::NewFrame() to create a new frame.
+ * Semant keeps this 'level' in its FunEntry.
+*/
 class Level {
 public:
   frame::Frame *frame_;
   Level *parent_;
 
   /* TODO: Put your lab5 code here */
-  Level(tr::Level *parent, temp::Label *name, std::list<bool> *formals)
-    :parent_(parent){
-      // todo
-      frame_ = nullptr;
-    }
+  Level(tr::Level *parent, temp::Label *name, std::list<bool> *formals);
 };
 
 class ProgTr {

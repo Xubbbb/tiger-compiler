@@ -408,7 +408,8 @@ void VarDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
   /* TODO: Put your lab4 code here */
   type::Ty* init_ty = init_->SemAnalyze(venv, tenv, labelcount, errormsg)->ActualTy();
   if(typ_ == nullptr){
-    if(init_ty->IsSameType(type::NilTy::Instance())){
+    //!This place can't use IsSameType, because it will regard RecordTy the same as NilTy
+    if(typeid(*init_ty) == typeid(type::NilTy)){
       errormsg->Error(pos_, "init should not be nil without type specified");
     }
     venv->Enter(var_, new env::VarEntry(init_ty));

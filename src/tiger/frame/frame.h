@@ -1,3 +1,8 @@
+/**
+ * comment by: Bin Xu
+ * the implementation of frame.h is specific to different target machine.The interface is abstract.
+ */
+
 #ifndef TIGER_FRAME_FRAME_H_
 #define TIGER_FRAME_FRAME_H_
 
@@ -71,13 +76,55 @@ protected:
 class Access {
 public:
   /* TODO: Put your lab5 code here */
-  
+  virtual tree::Exp *ToExp(tree::Exp* framePtr) const = 0;
   virtual ~Access() = default;
-  
 };
 
 class Frame {
+public:
   /* TODO: Put your lab5 code here */
+  temp::Label* name_;
+  // denoting the locations where the formal parameters will be kept at run time as callee's view
+  std::list<frame::Access *> *formals;
+  // record if a new local var is allocated on the stack, what offset will it get
+  int offset;
+
+  Frame(){}
+  /**
+   * when a new function g is called, we should call NewFrame(g, ...) to create a new frame for this function
+   * 1. NewFrame should handle with 'shift of view': 
+   *    (1) The param is in a register or in a frame location
+   *    (2) Instructions produced to implement 'view shift'
+   * 
+   *
+   * @param name the label represents the function's machine code begin
+   * @param formals whether this formal is escaped
+   */
+  Frame(temp::Label* name, std::list<bool>* formals)
+    :name_(name),
+    formals(nullptr)
+  {
+  }
+
+  /**
+   * If true, Returns an InFrameAccess with an offset from the frame pointer
+   * (Frame size may also be optimized by noticing when two frame-resident variables could be allocated to the same slot)
+   * If false, Returns a register InRegAccess(t481)
+   * (Register allocator will use as few registers as possible to represent the temporary)
+   * 
+   * @param escape whether this formal is escaped
+  */
+  virtual frame::Access* AllocLocal(bool escape) = 0;
+
+  /**
+   * return the formals list of this frame
+  */
+  std::list<frame::Access *>* Formals() const {
+    return this->formals;
+  }
+  std::string GetLabel() const {
+    return name_->Name();
+  }
 };
 
 /**
@@ -132,6 +179,24 @@ private:
 };
 
 /* TODO: Put your lab5 code here */
+
+/**
+ * ExternalCall helps you call runtime.c providing function
+*/
+tree::Exp* ExternalCall(std::string s, tree::ExpList* args);
+
+/**
+ * ProcEntryExit1:
+ * This function should complete step4, 5, 8 in func dec(view shift)
+ * 4: receive input params
+ * 5: save callee saved register
+ * 8: restore callee saved register
+*/
+frame::ProcFrag* ProcEntryExit1(frame::Frame* frame_, tree::Stm* stm_);
+
+assem::InstrList* ProcEntryExit2(assem::InstrList *);
+
+assem::Proc* ProcEntryExit3(frame::Frame* frame_, assem::InstrList* il);
 
 } // namespace frame
 

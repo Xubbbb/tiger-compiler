@@ -142,6 +142,7 @@ void VoidExp::Traverse(esc::EscEnvPtr env, int depth) {
 
 void FunctionDec::Traverse(esc::EscEnvPtr env, int depth) {
   /* TODO: Put your lab5 code here */
+  env->BeginScope();
   depth += 1;
   auto func_dec_list = functions_->GetList();
   for(auto func_dec_it = func_dec_list.begin();func_dec_it != func_dec_list.end();++func_dec_it){
@@ -152,6 +153,7 @@ void FunctionDec::Traverse(esc::EscEnvPtr env, int depth) {
     }
     (*func_dec_it)->body_->Traverse(env, depth);
   }
+  env->EndScope();
 }
 
 void VarDec::Traverse(esc::EscEnvPtr env, int depth) {
