@@ -18,9 +18,12 @@ enum BinOp { PLUS = 0, MINUS, TIMES, DIV };
 class Table;
 class IntAndTable;
 
+//语句的基类
 class Stm {
  public:
+  //Maxargs告知给定语句中任意子表达式内的print语句的参数个数
   virtual int MaxArgs() const = 0;
+  //Interp Stm时只会返回被更新的表
   virtual Table *Interp(Table *) const = 0;
 };
 
@@ -59,13 +62,18 @@ class Exp {
   // TODO: you'll have to add some definitions here (lab1).
   // Hints: You may add interfaces like `int MaxArgs()`,
   //        and ` IntAndTable *Interp(Table *)`
+  public:
+    virtual int MaxArgs() const = 0;
+    //当一个表达式Exp执行完之后, 他既要返回参数表同时要返回这个表达式执行出来的value
+    virtual IntAndTable *Interp(Table *) const = 0;
 };
 
 class IdExp : public Exp {
  public:
   explicit IdExp(std::string id) : id(std::move(id)) {}
   // TODO: you'll have to add some definitions here (lab1).
-
+  int MaxArgs() const override;
+  IntAndTable *Interp(Table *) const override;
  private:
   std::string id;
 };
@@ -74,6 +82,8 @@ class NumExp : public Exp {
  public:
   explicit NumExp(int num) : num(num) {}
   // TODO: you'll have to add some definitions here.
+  int MaxArgs() const override;
+  IntAndTable *Interp(Table *) const override;
 
  private:
   int num;
@@ -83,6 +93,8 @@ class OpExp : public Exp {
  public:
   OpExp(Exp *left, BinOp oper, Exp *right)
       : left(left), oper(oper), right(right) {}
+  int MaxArgs() const override;
+  IntAndTable * Interp(Table *) const override;
 
  private:
   Exp *left;
@@ -93,23 +105,33 @@ class OpExp : public Exp {
 class EseqExp : public Exp {
  public:
   EseqExp(Stm *stm, Exp *exp) : stm(stm), exp(exp) {}
+  int MaxArgs() const override;
+  IntAndTable * Interp(Table *) const override;
 
  private:
   Stm *stm;
   Exp *exp;
 };
 
+//print(exp1, exp2 ...)中的表达式的列表
 class ExpList {
  public:
   // TODO: you'll have to add some definitions here (lab1).
   // Hints: You may add interfaces like `int MaxArgs()`, `int NumExps()`,
   //        and ` IntAndTable *Interp(Table *)`
+  virtual int MaxArgs() const = 0;
+  virtual int NumExps() const = 0;
+  //其实不太明白为什么这个地方需要是IntAndTable, 似乎只要Table就足够了?
+  virtual IntAndTable *Interp(Table *) const = 0;
 };
 
 class PairExpList : public ExpList {
  public:
   PairExpList(Exp *exp, ExpList *tail) : exp(exp), tail(tail) {}
   // TODO: you'll have to add some definitions here (lab1).
+  int MaxArgs() const override;
+  int NumExps() const override;
+  IntAndTable *Interp(Table *) const override;
  private:
   Exp *exp;
   ExpList *tail;
@@ -119,6 +141,9 @@ class LastExpList : public ExpList {
  public:
   LastExpList(Exp *exp) : exp(exp) {}
   // TODO: you'll have to add some definitions here (lab1).
+  int MaxArgs() const override;
+  int NumExps() const override;
+  IntAndTable *Interp(Table *) const override;
  private:
   Exp *exp;
 };

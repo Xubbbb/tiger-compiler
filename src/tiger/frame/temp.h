@@ -1,3 +1,9 @@
+/*
+* comment by: Bin Xu
+* This module temp include 'Temp' and 'Label'. Temp is a data structure represents virtual registers. We will change these 
+* temporary register to real register in "Register Allocation". Label represents the location of function's machine code begin.
+*/
+
 #ifndef TIGER_FRAME_TEMP_H_
 #define TIGER_FRAME_TEMP_H_
 
