@@ -140,12 +140,13 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
             */
             auto left_const_exp = static_cast<tree::ConstExp *>(dst_binop_exp->left_);
             auto right_temp = dst_binop_exp->right_->Munch(instr_list, fs); 
-            std::string instr_assem = "movq $" + std::to_string(src_const_exp->consti_) + ", " + std::to_string(left_const_exp->consti_) + "(`d0)";
-            auto dst_list = new temp::TempList();
-            dst_list->Append(right_temp);
-            assem::Instr* mov_instr = new assem::MoveInstr(
+            std::string instr_assem = "movq $" + std::to_string(src_const_exp->consti_) + ", " + std::to_string(left_const_exp->consti_) + "(`s0)";
+            auto src_list = new temp::TempList();
+            src_list->Append(right_temp);
+            assem::Instr* mov_instr = new assem::OperInstr(
               instr_assem,
-              dst_list,
+              nullptr,
+              src_list,
               nullptr
             );
             instr_list.Append(mov_instr);
@@ -163,12 +164,13 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
             */
             auto right_const_exp = static_cast<tree::ConstExp *>(dst_binop_exp->right_);
             auto left_temp = dst_binop_exp->left_->Munch(instr_list, fs);
-            std::string instr_assem = "movq $" + std::to_string(src_const_exp->consti_) + ", " + std::to_string(right_const_exp->consti_) + "(`d0)";
-            auto dst_list = new temp::TempList();
-            dst_list->Append(left_temp);
-            assem::Instr* mov_instr = new assem::MoveInstr(
+            std::string instr_assem = "movq $" + std::to_string(src_const_exp->consti_) + ", " + std::to_string(right_const_exp->consti_) + "(`s0)";
+            auto src_list = new temp::TempList();
+            src_list->Append(left_temp);
+            assem::Instr* mov_instr = new assem::OperInstr(
               instr_assem,
-              dst_list,
+              nullptr,
+              src_list,
               nullptr
             );
             instr_list.Append(mov_instr);
@@ -189,21 +191,21 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
             auto left_const_exp = static_cast<tree::ConstExp *>(dst_binop_exp->left_);
             auto right_temp = dst_binop_exp->right_->Munch(instr_list, fs);
             auto src_temp = src_->Munch(instr_list, fs);
-            std::string instr_assem = "movq `s0, " + std::to_string(left_const_exp->consti_) + "(`d0)";
-            auto dst_list = new temp::TempList();
-            dst_list->Append(right_temp);
+            std::string instr_assem = "movq `s0, " + std::to_string(left_const_exp->consti_) + "(`s1)";
             auto src_list = new temp::TempList();
             src_list->Append(src_temp);
-            assem::Instr* mov_instr = new assem::MoveInstr(
+            src_list->Append(right_temp);
+            assem::Instr* mov_instr = new assem::OperInstr(
               instr_assem,
-              dst_list,
-              src_list
+              nullptr,
+              src_list,
+              nullptr
             );
             instr_list.Append(mov_instr);
             return;
           }
           else if(typeid(*(dst_binop_exp->right_)) == typeid(tree::ConstExp)){
-            /** movq $x, a(%rxx)
+            /** movq %rxx, a(%rxx)
              *        ---move---
              *        |        |
              *                MEM
@@ -215,15 +217,15 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
             auto right_const_exp = static_cast<tree::ConstExp *>(dst_binop_exp->right_);
             auto left_temp = dst_binop_exp->left_->Munch(instr_list, fs);
             auto src_temp = src_->Munch(instr_list, fs);
-            std::string instr_assem = "movq `s0, " + std::to_string(right_const_exp->consti_) + "(`d0)";
-            auto dst_list = new temp::TempList();
-            dst_list->Append(left_temp);
+            std::string instr_assem = "movq `s0, " + std::to_string(right_const_exp->consti_) + "(`s1)";
             auto src_list = new temp::TempList();
             src_list->Append(src_temp);
-            assem::Instr* mov_instr = new assem::MoveInstr(
+            src_list->Append(left_temp);
+            assem::Instr* mov_instr = new assem::OperInstr(
               instr_assem,
-              dst_list,
-              src_list
+              nullptr,
+              src_list,
+              nullptr
             );
             instr_list.Append(mov_instr);
             return;
@@ -243,12 +245,13 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
     auto src_const_exp = static_cast<tree::ConstExp *>(src_);
     auto dst_mem_exp = static_cast<tree::MemExp *>(dst_);
     auto dst_temp = dst_mem_exp->exp_->Munch(instr_list, fs);
-    std::string instr_assem = "movq $" + std::to_string(src_const_exp->consti_) + ", (`d0)";
-    auto dst_list = new temp::TempList();
-    dst_list->Append(dst_temp);
-    assem::Instr* mov_instr = new assem::MoveInstr(
+    std::string instr_assem = "movq $" + std::to_string(src_const_exp->consti_) + ", (`s0)";
+    auto src_list = new temp::TempList();
+    src_list->Append(dst_temp);
+    assem::Instr* mov_instr = new assem::OperInstr(
       instr_assem,
-      dst_list,
+      nullptr,
+      src_list,
       nullptr
     );
     instr_list.Append(mov_instr);
@@ -264,15 +267,15 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
     auto dst_mem_exp = static_cast<tree::MemExp *>(dst_);
     auto dst_temp = dst_mem_exp->exp_->Munch(instr_list, fs);
     auto src_temp = src_->Munch(instr_list, fs);
-    std::string instr_assem = "movq `s0, (`d0)";
-    auto dst_list = new temp::TempList();
-    dst_list->Append(dst_temp);
+    std::string instr_assem = "movq `s0, (`s1)";
     auto src_list = new temp::TempList();
     src_list->Append(src_temp);
-    assem::Instr* mov_instr = new assem::MoveInstr(
+    src_list->Append(dst_temp);
+    assem::Instr* mov_instr = new assem::OperInstr(
       instr_assem,
-      dst_list,
-      src_list
+      nullptr,
+      src_list,
+      nullptr
     );
     instr_list.Append(mov_instr);
     return;
@@ -302,10 +305,11 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
           dst_list->Append(dst_temp);
           auto src_list = new temp::TempList();
           src_list->Append(right_temp);
-          assem::Instr* mov_instr = new assem::MoveInstr(
+          assem::Instr* mov_instr = new assem::OperInstr(
             instr_assem,
             dst_list,
-            src_list
+            src_list,
+            nullptr
           );
           instr_list.Append(mov_instr);
           return;
@@ -328,10 +332,11 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
           dst_list->Append(dst_temp);
           auto src_list = new temp::TempList();
           src_list->Append(left_temp);
-          assem::Instr* mov_instr = new assem::MoveInstr(
+          assem::Instr* mov_instr = new assem::OperInstr(
             instr_assem,
             dst_list,
-            src_list
+            src_list,
+            nullptr
           );
           instr_list.Append(mov_instr);
           return;
@@ -351,9 +356,10 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
     std::string instr_assem = "movq $" + std::to_string(src_const_exp->consti_) + ", `d0";
     auto dst_list = new temp::TempList();
     dst_list->Append(dst_temp);
-    assem::Instr* mov_instr = new assem::MoveInstr(
+    assem::Instr* mov_instr = new assem::OperInstr(
       instr_assem,
       dst_list,
+      nullptr,
       nullptr
     );
     instr_list.Append(mov_instr);
@@ -374,10 +380,11 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
     dst_list->Append(dst_temp);
     auto src_list = new temp::TempList();
     src_list->Append(src_temp);
-    assem::Instr* mov_instr = new assem::MoveInstr(
+    assem::Instr* mov_instr = new assem::OperInstr(
       instr_assem,
       dst_list,
-      src_list
+      src_list,
+      nullptr
     );
     instr_list.Append(mov_instr);
     return;
@@ -535,6 +542,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     auto right_temp = right_->Munch(instr_list, fs);
 
     auto rax = reg_manager->GetRegister(0);
+    auto rdx = reg_manager->GetRegister(3);
     std::string mov_assem = "movq `s0, `d0";
     auto mov_dst_list = new temp::TempList();
     mov_dst_list->Append(rax);
@@ -548,6 +556,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     std::string mul_assem = "imulq `s0";
     auto mul_dst_list = new temp::TempList();
     mul_dst_list->Append(rax);
+    mul_dst_list->Append(rdx);
     auto mul_src_list = new temp::TempList();
     mul_src_list->Append(right_temp);mul_src_list->Append(rax);
     assem::Instr* mul_instr = new assem::OperInstr(
@@ -567,6 +576,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     auto right_temp = right_->Munch(instr_list, fs);
 
     auto rax = reg_manager->GetRegister(0);
+    auto rdx = reg_manager->GetRegister(3);
     std::string mov_assem = "movq `s0, `d0";
     auto mov_dst_list = new temp::TempList();
     mov_dst_list->Append(rax);
@@ -580,15 +590,16 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     std::string cqto_assem = "cqto";
     assem::Instr* cqto_instr = new assem::OperInstr(
       cqto_assem,
-      nullptr,
+      new temp::TempList(rdx),
       nullptr,
       nullptr
     );
     std::string div_assem = "idivq `s0";
     auto div_dst_list = new temp::TempList();
     div_dst_list->Append(rax);
+    div_dst_list->Append(rdx);
     auto div_src_list = new temp::TempList();
-    div_src_list->Append(right_temp);div_src_list->Append(rax);
+    div_src_list->Append(right_temp);div_src_list->Append(rax);div_src_list->Append(rdx);
     assem::Instr* div_instr = new assem::OperInstr(
       div_assem,
       div_dst_list,
@@ -627,10 +638,11 @@ temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
         dst_list->Append(result_reg);
         auto src_list = new temp::TempList();
         src_list->Append(right_temp);
-        assem::Instr* mov_instr = new assem::MoveInstr(
+        assem::Instr* mov_instr = new assem::OperInstr(
           instr_assem,
           dst_list,
-          src_list
+          src_list,
+          nullptr
         );
         instr_list.Append(mov_instr);
         return result_reg;
@@ -651,10 +663,11 @@ temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
         dst_list->Append(result_reg);
         auto src_list = new temp::TempList();
         src_list->Append(left_temp);
-        assem::Instr* mov_instr = new assem::MoveInstr(
+        assem::Instr* mov_instr = new assem::OperInstr(
           instr_assem,
           dst_list,
-          src_list
+          src_list,
+          nullptr
         );
         instr_list.Append(mov_instr);
         return result_reg;
@@ -674,10 +687,11 @@ temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   auto src_list = new temp::TempList();
   src_list->Append(src_temp);
 
-  assem::Instr* mov_instr = new assem::MoveInstr(
+  assem::Instr* mov_instr = new assem::OperInstr(
     instr_assem,
     dst_list,
-    src_list
+    src_list,
+    nullptr
   );
 
   instr_list.Append(mov_instr);
@@ -744,9 +758,10 @@ temp::Temp *ConstExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   std::string mov_assem = "movq $" + std::to_string(consti_) + ", `d0";
   auto dst_list = new temp::TempList();
   dst_list->Append(result_reg);
-  assem::Instr* mov_instr = new assem::MoveInstr(
+  assem::Instr* mov_instr = new assem::OperInstr(
     mov_assem,
     dst_list,
+    nullptr,
     nullptr
   );
   instr_list.Append(mov_instr);
@@ -836,15 +851,15 @@ temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list, std::string_vie
     else{
       // Push other args from right to left in order
       //? But what about the sequence of calculating args? Maybe in canonical, we have pull all CALLEXP to the top?
-      std::string mov_assem = "movq `s0, " + std::to_string((i - MAX_ARG_REGS) * WORD_SIZE) + "(`d0)";
-      auto dst_list = new temp::TempList();
-      dst_list->Append(reg_manager->StackPointer());
+      std::string mov_assem = "movq `s0, " + std::to_string((i - MAX_ARG_REGS) * WORD_SIZE) + "(`s1)";
       auto src_list = new temp::TempList();
       src_list->Append(arg_temp);
-      assem::Instr* mov_instr = new assem::MoveInstr(
+      src_list->Append(reg_manager->StackPointer());
+      assem::Instr* mov_instr = new assem::OperInstr(
         mov_assem,
-        dst_list,
-        src_list
+        nullptr,
+        src_list,
+        nullptr
       );
       instr_list.Append(mov_instr);
     }

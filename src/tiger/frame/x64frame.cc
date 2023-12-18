@@ -76,10 +76,30 @@ X64RegManager::X64RegManager(){
     }
     temp_map_->Enter(reg_temp, register_name);
   }
+  //!fake framepointer
+  auto fake_fp_temp = temp::TempFactory::NewTemp();
+  regs_.push_back(fake_fp_temp);
 }
 
 temp::TempList *X64RegManager::Registers() {
-  return nullptr;
+  auto res = new temp::TempList();
+  res->Append(regs_[0]);
+  res->Append(regs_[2]);
+  res->Append(regs_[3]);
+  res->Append(regs_[4]);
+  res->Append(regs_[5]);
+  res->Append(regs_[8]);
+  res->Append(regs_[9]);
+  res->Append(regs_[10]);
+  res->Append(regs_[11]);
+  res->Append(regs_[1]);
+  res->Append(regs_[6]);
+  res->Append(regs_[12]);
+  res->Append(regs_[13]);
+  res->Append(regs_[14]);
+  res->Append(regs_[15]);
+
+  return res;
 }
 
 temp::TempList *X64RegManager::ArgRegs() {
@@ -130,7 +150,9 @@ int X64RegManager::WordSize() {
 }
 
 temp::Temp *X64RegManager::FramePointer() {
-  return regs_[6];
+  // return regs_[6];
+  //!fake fp
+  return regs_[16];
 }
 
 temp::Temp *X64RegManager::StackPointer() {
@@ -272,14 +294,14 @@ frame::ProcFrag* ProcEntryExit1(frame::Frame* frame_, tree::Stm* stm_){
 
 
   //? What about sequence of view_shift and callee save?
-  //! We try view shift first and then callee save just as the sequence on the book
+  //! We try callee save first and then view_shift just as the sequence on the book
   // todo: maybe change the order
   if(formal_list_ptr != nullptr){
     return new ProcFrag(
       new tree::SeqStm(
-        stm_receive_param,
+        stm_callee_save,
         new tree::SeqStm(
-          stm_callee_save,
+          stm_receive_param,
           new tree::SeqStm(
             stm_,
             stm_callee_save_restore
