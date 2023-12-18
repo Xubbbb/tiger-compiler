@@ -6,7 +6,11 @@ namespace fg {
 void FlowGraphFactory::AssemFlowGraph() {
   /* TODO: Put your lab6 code here */
   auto instr_list = instr_list_->GetList();
-  FNodePtr succ = nullptr;
+  /**
+   * pred is a pointer to the previous instruction node, usually we should link pred and current node
+   * except pred is a jump related instruction
+  */
+  FNodePtr pred = nullptr;
   std::vector<FNodePtr> jump_related_nodes;
   for(auto instr_it = instr_list.begin();instr_it != instr_list.end();++instr_it){
     auto new_node = flowgraph_->NewNode(*instr_it);
@@ -14,24 +18,24 @@ void FlowGraphFactory::AssemFlowGraph() {
       auto label_instr = static_cast<assem::LabelInstr *>(*instr_it);
       label_map_->Enter(label_instr->label_, new_node);
     }
-    if(succ != nullptr){
-      if(typeid(*(succ->NodeInfo())) == typeid(assem::OperInstr)){
-        auto oper_instr = static_cast<assem::OperInstr *>(succ->NodeInfo());
+    if(pred != nullptr){
+      if(typeid(*(pred->NodeInfo())) == typeid(assem::OperInstr)){
+        auto oper_instr = static_cast<assem::OperInstr *>(pred->NodeInfo());
         // This means this is a jump related instr
         if(oper_instr->jumps_ != nullptr){
           // do nothing, wait until all label is pushed into map then go
           // back to fill it
-          jump_related_nodes.push_back(succ);
+          jump_related_nodes.push_back(pred);
         }
         else{
-          flowgraph_->AddEdge(succ, new_node);
+          flowgraph_->AddEdge(pred, new_node);
         }
       }
       else{
-        flowgraph_->AddEdge(succ, new_node);
+        flowgraph_->AddEdge(pred, new_node);
       }
     }
-    succ = new_node;
+    pred = new_node;
   }
   for(auto node_it = jump_related_nodes.begin();node_it != jump_related_nodes.end();++node_it){
     auto oper_instr = static_cast<assem::OperInstr *>((*node_it)->NodeInfo());

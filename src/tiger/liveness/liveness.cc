@@ -43,6 +43,10 @@ MoveList *MoveList::Intersect(MoveList *list) {
   return res;
 }
 
+
+/**
+ * in[n] <- use[n] U (out[n] - def[n])
+*/
 temp::TempList* LiveGraphFactory::CalculateNewIn(temp::TempList* use, temp::TempList* old_out, temp::TempList* def){
   auto res = new temp::TempList();
   temp::TempList old_def;
@@ -93,6 +97,9 @@ temp::TempList* LiveGraphFactory::CalculateNewIn(temp::TempList* use, temp::Temp
   return res;
 }
 
+/**
+ * out[n] <- U(s belong to succ[n]) in[s]
+*/
 temp::TempList* LiveGraphFactory::CalculateNewOut(fg::FNodePtr n){
   auto res = new temp::TempList();
   auto succ_list = n->Succ();
@@ -154,6 +161,14 @@ void LiveGraphFactory::LiveMap() {
       out_->Set(instr_node, new_out);
       delete node_out;
 
+      /**
+       * We should notice that every node's in_set
+       * and out_set will only increase element!
+       * Once an element is put in, it will never
+       * be kicked out! So we can only detect the size of 
+       * in and out is changed or not to decide
+       * whether any change is made.
+      */
       if(new_in->GetList().size() > old_in_set_size || new_out->GetList().size() > old_out_set_size){
         is_same = false;
       }
