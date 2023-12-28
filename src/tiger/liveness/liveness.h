@@ -66,6 +66,9 @@ private:
 
   void LiveMap();
   void InterfGraph();
+  // some support function to support LiveMap()
+  temp::TempList* CalculateNewIn(temp::TempList* use, temp::TempList* old_out, temp::TempList* def);
+  temp::TempList* CalculateNewOut(fg::FNodePtr n);
 };
 
 } // namespace live

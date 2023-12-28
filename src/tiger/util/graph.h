@@ -146,7 +146,9 @@ template <typename T> void Graph<T>::AddEdge(Node<T> *from, Node<T> *to) {
   assert(to);
   assert(from->my_graph_ == this);
   assert(to->my_graph_ == this);
-  if (from->GoesTo(to))
+  //! For convenience, if 'from' equal to 'to', we don't
+  //! add an edge to itself. 
+  if (from->GoesTo(to) || from == to)
     return;
   to->preds_->node_list_.push_back(from);
   from->succs_->node_list_.push_back(to);
