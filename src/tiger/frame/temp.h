@@ -30,16 +30,17 @@ class Temp {
   friend class TempFactory;
 
 public:
+  bool is_pointer;
   [[nodiscard]] int Int() const;
 
 private:
   int num_;
-  explicit Temp(int num) : num_(num) {}
+  explicit Temp(int num, bool isPointer) : num_(num), is_pointer(isPointer){}
 };
 
 class TempFactory {
 public:
-  static Temp *NewTemp();
+  static Temp *NewTemp(bool isPointer);
 
 private:
   int temp_id_ = 100;

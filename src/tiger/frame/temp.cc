@@ -26,8 +26,8 @@ Label *LabelFactory::NamedLabel(std::string_view s) {
 
 std::string LabelFactory::LabelString(Label *s) { return s->Name(); }
 
-Temp *TempFactory::NewTemp() {
-  Temp *p = new Temp(temp_factory.temp_id_++);
+Temp *TempFactory::NewTemp(bool isPointer) {
+  Temp *p = new Temp(temp_factory.temp_id_++, isPointer);
   std::stringstream stream;
   stream << 't';
   stream << p->num_;

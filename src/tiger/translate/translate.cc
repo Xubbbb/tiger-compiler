@@ -31,18 +31,21 @@ tree::Exp* FindFP(Level* end, Level* start){
   return res_exp;
 }
 
-Level::Level(tr::Level *parent, temp::Label *name, std::list<bool> *formals)
+Level::Level(tr::Level *parent, temp::Label *name, std::list<bool> *formals, std::list<bool> *is_pointer)
   :parent_(parent),
   frame_(nullptr){
     if(formals != nullptr){
       formals->push_front(true);
     }
-    frame_ = new frame::X64Frame(name, formals);
+    if(is_pointer != nullptr){
+      is_pointer->push_front(false);
+    }
+    frame_ = new frame::X64Frame(name, formals, is_pointer);
 }
 
-Access *Access::AllocLocal(Level *level, bool escape) {
+Access *Access::AllocLocal(Level *level, bool escape, bool is_pointer) {
   /* TODO: Put your lab5 code here */
-  auto new_access = level->frame_->AllocLocal(escape);
+  auto new_access = level->frame_->AllocLocal(escape, is_pointer);
   return new tr::Access(level, new_access);
 }
 
@@ -131,7 +134,7 @@ public:
   
   [[nodiscard]] tree::Exp *UnEx() override {
     /* TODO: Put your lab5 code here */
-    temp::Temp* r = temp::TempFactory::NewTemp();
+    temp::Temp* r = temp::TempFactory::NewTemp(false);
     temp::Label* t = temp::LabelFactory::NewLabel();
     temp::Label* f = temp::LabelFactory::NewLabel();
     cx_.trues_.DoPatch(t);
@@ -431,7 +434,7 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     temp::Label* second_true_label = temp::LabelFactory::NewLabel();
     temp::Label* false_label = temp::LabelFactory::NewLabel();
     temp::Label* joint_label = temp::LabelFactory::NewLabel();
-    temp::Temp* result_reg = temp::TempFactory::NewTemp();
+    temp::Temp* result_reg = temp::TempFactory::NewTemp(false);
     auto left_cx = left_exp_ty->exp_->UnCx(errormsg);
     auto right_cx = right_exp_ty->exp_->UnCx(errormsg);
     left_cx.trues_.DoPatch(first_true_label);
@@ -485,7 +488,7 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     temp::Label* second_false_label = temp::LabelFactory::NewLabel();
     temp::Label* true_label = temp::LabelFactory::NewLabel();
     temp::Label* joint_label = temp::LabelFactory::NewLabel();
-    temp::Temp* result_reg = temp::TempFactory::NewTemp();
+    temp::Temp* result_reg = temp::TempFactory::NewTemp(false);
     auto left_cx = left_exp_ty->exp_->UnCx(errormsg);
     auto right_cx = right_exp_ty->exp_->UnCx(errormsg);
     left_cx.trues_.DoPatch(true_label);
@@ -554,7 +557,7 @@ tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   }
   auto record_ty = static_cast<type::RecordTy*>(ty_res);
   auto exp_field_list = fields_->GetList();
-  auto result_reg = temp::TempFactory::NewTemp();
+  auto result_reg = temp::TempFactory::NewTemp(true);
   // const auto ALLOC_SIZE = exp_field_list.size() * reg_manager->WordSize();
   /**
    * change alloc_record's param from a int to a pointer to descriptor
@@ -681,7 +684,7 @@ tr::ExpAndTy *IfExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   test_cx.falses_.DoPatch(false_label);
   if(elsee_ != nullptr){
     // allocate a register r
-    auto result_reg = temp::TempFactory::NewTemp();
+    auto result_reg = temp::TempFactory::NewTemp(false);
     // finally jump to joint label
     auto joint_label = temp::LabelFactory::NewLabel();
     auto else_exp_ty = elsee_->Translate(venv, tenv, level, label, errormsg);
@@ -786,7 +789,7 @@ tr::ExpAndTy *ForExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   auto done_label = temp::LabelFactory::NewLabel();
   auto lo_exp_ty = lo_->Translate(venv, tenv, level, label, errormsg);
   auto hi_exp_ty = hi_->Translate(venv, tenv, level, label, errormsg);
-  auto it_var_access = tr::Access::AllocLocal(level, escape_);
+  auto it_var_access = tr::Access::AllocLocal(level, escape_, false);
   venv->Enter(var_, new env::VarEntry(it_var_access, type::IntTy::Instance(), true));
   auto body_exp_ty = body_->Translate(venv, tenv, level, done_label, errormsg);
   //! Attention: don't think the pre check body and in the loop body is the same!
@@ -812,7 +815,7 @@ tr::ExpAndTy *ForExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     it_access_exp,
     lo_exp_ty->exp_->UnEx()
   );
-  auto limit_reg = temp::TempFactory::NewTemp();
+  auto limit_reg = temp::TempFactory::NewTemp(false);
   auto init_limit_stm = new tree::MoveStm(
     new tree::TempExp(limit_reg),
     hi_exp_ty->exp_->UnEx()
@@ -999,8 +1002,13 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     for(auto &formal : formals){
       formals_escape_list->push_back(formal->escape_);
     }
+    auto formals_is_pointer_list = new std::list<bool>();
+    formals_is_pointer_list->clear();
+    for(auto &formal_ty : formal_ty_list->GetList()){
+      formals_is_pointer_list->push_back(type::isPointer(formal_ty));
+    }
     // create a new level for this function
-    auto fun_level =  new tr::Level(level, fun_label, formals_escape_list);
+    auto fun_level =  new tr::Level(level, fun_label, formals_escape_list, formals_is_pointer_list);
     auto fun_entry = new env::FunEntry(fun_level, fun_label, formal_ty_list, result_ty);
     venv->Enter((*fun_dec_it)->name_, fun_entry);
   }
@@ -1041,8 +1049,10 @@ tr::Exp *VarDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                            tr::Level *level, temp::Label *label,
                            err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
-  // first, call 'AllocLocal' to create a new local variable
-  auto var_access = tr::Access::AllocLocal(level, escape_);
+  auto typ_ty = tenv->Look(typ_);
+  bool is_pointer = type::isPointer(typ_ty);
+  // call 'AllocLocal' to create a new local variable
+  auto var_access = tr::Access::AllocLocal(level, escape_, is_pointer);
   auto init_exp_ty = init_->Translate(venv, tenv, level, label, errormsg);
   venv->Enter(var_, new env::VarEntry(var_access, init_exp_ty->ty_->ActualTy(), false));
   auto mem_exp = var_access->access_->ToExp(tr::FindFP(level, level));
@@ -1095,11 +1105,11 @@ tr::Exp *TypeDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
         }
         record_ty->label_ = temp::LabelFactory::NewLabel();
         //!debug//
-        std::cout << name_ty->sym_->Name() << "'s descriptor created: " << descriptor << std::endl;
-        std::cout << "Field name list:" << std::endl;
-        for(auto field : field_list){
-          std::cout << field->name_->Name() << std::endl;
-        } 
+        // std::cout << name_ty->sym_->Name() << "'s descriptor created: " << descriptor << std::endl;
+        // std::cout << "Field name list:" << std::endl;
+        // for(auto field : field_list){
+        //   std::cout << field->name_->Name() << std::endl;
+        // } 
         //!debug//
         frags->PushBack(new frame::StringFrag(record_ty->label_, descriptor));
       }

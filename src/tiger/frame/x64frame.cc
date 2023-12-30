@@ -18,7 +18,7 @@ tree::Exp* InRegAccess::ToExp(tree::Exp* framePtr) const {
 X64RegManager::X64RegManager(){
   // init register
   for(int i = 0;i < 16;++i){
-    auto reg_temp = temp::TempFactory::NewTemp();
+    auto reg_temp = temp::TempFactory::NewTemp(false);
     regs_.push_back(reg_temp);
     std::string* register_name = nullptr;
     switch (i)
@@ -77,7 +77,7 @@ X64RegManager::X64RegManager(){
     temp_map_->Enter(reg_temp, register_name);
   }
   //!fake framepointer
-  auto fake_fp_temp = temp::TempFactory::NewTemp();
+  auto fake_fp_temp = temp::TempFactory::NewTemp(false);
   regs_.push_back(fake_fp_temp);
 }
 
@@ -163,27 +163,30 @@ temp::Temp *X64RegManager::ReturnValue() {
   return regs_[0];
 }
 
-X64Frame::X64Frame(temp::Label* name, std::list<bool>* formals)
-  :Frame(name, formals)
+X64Frame::X64Frame(temp::Label* name, std::list<bool>* formals, std::list<bool>* is_pointer)
+  :Frame(name, formals, is_pointer)
 { 
   offset = 0;
-  if(formals != nullptr){
+  if(formals != nullptr && is_pointer != nullptr){
     this->formals = new std::list<frame::Access *>();
-    for(const auto is_escape : (*formals)){
-      this->formals->push_back(AllocLocal(is_escape));
+    auto formal_it = formals->begin();
+    auto is_pointer_it = is_pointer->begin();
+    for(;formal_it != formals->end();++formal_it, ++is_pointer_it){
+      this->formals->push_back(AllocLocal(*formal_it, *is_pointer_it));
     }
   }
 }
 
-frame::Access* X64Frame::AllocLocal(bool escape){
+frame::Access* X64Frame::AllocLocal(bool escape, bool is_pointer){
   Access* new_access = nullptr;
   if(escape){
     offset -= reg_manager->WordSize();
-    new_access = new InFrameAccess(offset);
+    new_access = new InFrameAccess(offset, is_pointer);
   }
   else{
-    new_access = new InRegAccess(temp::TempFactory::NewTemp());
+    new_access = new InRegAccess(temp::TempFactory::NewTemp(is_pointer), is_pointer);
   }
+  locals->push_back(new_access);
   return new_access;
 }
 
@@ -253,7 +256,7 @@ frame::ProcFrag* ProcEntryExit1(frame::Frame* frame_, tree::Stm* stm_){
   std::vector<temp::Temp*> saving_list;
   saving_list.clear();
   for(int j = 0;j < num_callee_save;++j){
-    auto new_saving_reg = temp::TempFactory::NewTemp();
+    auto new_saving_reg = temp::TempFactory::NewTemp(false);
     saving_list.push_back(new_saving_reg);
     if(stm_callee_save == nullptr){
       stm_callee_save = new tree::MoveStm(

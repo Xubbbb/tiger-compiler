@@ -3,9 +3,11 @@
 #include <cstdio>
 
 #include "tiger/output/logger.h"
+#include "tiger/runtime/gc/roots/roots.h"
 
 extern frame::RegManager *reg_manager;
 extern frame::Frags *frags;
+std::vector<gc::AssemPointerMap> pointermap_list;
 
 namespace output {
 void AssemGen::GenAssem(bool need_ra) {

@@ -63,7 +63,7 @@ void RegAllocator::RewriteProgram(live::INodeListPtr spilledNodes){
     auto spilled_list = spilledNodes->GetList();
     for(auto v : spilled_list){
         auto v_temp = v->NodeInfo();
-        auto v_access = static_cast<frame::InFrameAccess*>(frame_->AllocLocal(true));
+        auto v_access = static_cast<frame::InFrameAccess*>(frame_->AllocLocal(true, v_temp->is_pointer));
         //! Attention: This place could not use instr_list, must use assem_instr_->GetInstrList()->GetList()
         //! Initially, I think these two are the same because 'GetList()' will return a 'list&'
         //! But actually it seems not the same. Maybe I will work out the reason later.
@@ -84,7 +84,7 @@ void RegAllocator::RewriteProgram(live::INodeListPtr spilledNodes){
                         }
                     }
                     if(is_exist){
-                        auto replace_temp = temp::TempFactory::NewTemp();
+                        auto replace_temp = temp::TempFactory::NewTemp(v_temp->is_pointer);
                         oper_instr->src_ = temp::TempList::RewriteTempList(instr_use, v_temp, replace_temp);
                         // insert new instruction
                         std::string instr_assem = "movq (" + frame_->GetLabel() + "_framesize" + std::to_string(v_access->offset) + ")(`s0), `d0";
@@ -114,7 +114,7 @@ void RegAllocator::RewriteProgram(live::INodeListPtr spilledNodes){
                         }
                     }
                     if(is_exist){
-                        auto replace_temp = temp::TempFactory::NewTemp();
+                        auto replace_temp = temp::TempFactory::NewTemp(v_temp->is_pointer);
                         oper_instr->dst_ = temp::TempList::RewriteTempList(instr_def, v_temp, replace_temp);
                         std::string instr_assem = "movq `s0, (" + frame_->GetLabel() + "_framesize" + std::to_string(v_access->offset) + ")(`s1)";
                         auto src_list = new temp::TempList();
@@ -146,7 +146,7 @@ void RegAllocator::RewriteProgram(live::INodeListPtr spilledNodes){
                         }
                     }
                     if(is_exist){
-                        auto replace_temp = temp::TempFactory::NewTemp();
+                        auto replace_temp = temp::TempFactory::NewTemp(v_temp->is_pointer);
                         move_instr->src_ = temp::TempList::RewriteTempList(instr_use, v_temp, replace_temp);
                         // insert new instruction
                         std::string instr_assem = "movq (" + frame_->GetLabel() + "_framesize" + std::to_string(v_access->offset) + ")(`s0), `d0";
@@ -176,7 +176,7 @@ void RegAllocator::RewriteProgram(live::INodeListPtr spilledNodes){
                         }
                     }
                     if(is_exist){
-                        auto replace_temp = temp::TempFactory::NewTemp();
+                        auto replace_temp = temp::TempFactory::NewTemp(v_temp->is_pointer);
                         move_instr->dst_ = temp::TempList::RewriteTempList(instr_def, v_temp, replace_temp);
                         std::string instr_assem = "movq `s0, (" + frame_->GetLabel() + "_framesize" + std::to_string(v_access->offset) + ")(`s1)";
                         auto src_list = new temp::TempList();

@@ -78,6 +78,9 @@ public:
   /* TODO: Put your lab5 code here */
   virtual tree::Exp *ToExp(tree::Exp* framePtr) const = 0;
   virtual ~Access() = default;
+  Access(): is_pointer(false){}
+  Access(bool isPointer): is_pointer(isPointer){}
+  bool is_pointer;
 };
 
 class Frame {
@@ -86,6 +89,11 @@ public:
   temp::Label* name_;
   // denoting the locations where the formal parameters will be kept at run time as callee's view
   std::list<frame::Access *> *formals;
+  /**
+   * For GC, we will create pointer map before every CALL
+   * this locals list helps us to find all the local variables in current frame
+  */
+  std::list<frame::Access *> *locals;
   // record if a new local var is allocated on the stack, what offset will it get
   int offset;
 
@@ -100,9 +108,10 @@ public:
    * @param name the label represents the function's machine code begin
    * @param formals whether this formal is escaped
    */
-  Frame(temp::Label* name, std::list<bool>* formals)
+  Frame(temp::Label* name, std::list<bool>* formals, std::list<bool>* is_pointer)
     :name_(name),
-    formals(nullptr)
+    formals(nullptr),
+    locals(nullptr)
   {
   }
 
@@ -114,7 +123,7 @@ public:
    * 
    * @param escape whether this formal is escaped
   */
-  virtual frame::Access* AllocLocal(bool escape) = 0;
+  virtual frame::Access* AllocLocal(bool escape, bool is_pointer) = 0;
 
   /**
    * return the formals list of this frame

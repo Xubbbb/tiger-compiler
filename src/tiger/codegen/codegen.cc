@@ -416,6 +416,7 @@ void ExpStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
 
 temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   /* TODO: Put your lab5 code here */
+  //! Temp's is_pointer may be wrong
   switch (op_)
   {
   case tree::BinOp::PLUS_OP:
@@ -430,7 +431,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
       */
       auto left_const_exp = static_cast<tree::ConstExp *>(left_);
       auto right_temp = right_->Munch(instr_list, fs);
-      auto result_reg = temp::TempFactory::NewTemp();
+      auto result_reg = temp::TempFactory::NewTemp(right_temp->is_pointer);
       std::string instr_assem = "leaq " + std::to_string(left_const_exp->consti_) + "(`s0), `d0";
       auto dst_list = new temp::TempList();
       dst_list->Append(result_reg);
@@ -455,7 +456,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
       */
       auto right_const_exp = static_cast<tree::ConstExp *>(right_);
       auto left_temp = left_->Munch(instr_list, fs);
-      auto result_reg = temp::TempFactory::NewTemp();
+      auto result_reg = temp::TempFactory::NewTemp(left_temp->is_pointer);
       std::string instr_assem = "leaq " + std::to_string(right_const_exp->consti_) + "(`s0), `d0";
       auto dst_list = new temp::TempList();
       dst_list->Append(result_reg);
@@ -476,7 +477,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     */
     auto left_temp = left_->Munch(instr_list, fs);
     auto right_temp = right_->Munch(instr_list, fs);
-    auto result_reg = temp::TempFactory::NewTemp();
+    auto result_reg = temp::TempFactory::NewTemp(left_temp->is_pointer || right_temp->is_pointer);
 
     std::string mov_assem = "movq `s0, `d0";
     auto mov_dst_list = new temp::TempList();
@@ -508,7 +509,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   {
     auto left_temp = left_->Munch(instr_list, fs);
     auto right_temp = right_->Munch(instr_list, fs);
-    auto result_reg = temp::TempFactory::NewTemp();
+    auto result_reg = temp::TempFactory::NewTemp(left_temp->is_pointer || right_temp->is_pointer);
 
     std::string mov_assem = "movq `s0, `d0";
     auto mov_dst_list = new temp::TempList();
@@ -631,7 +632,7 @@ temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
          * CONST
         */
         auto left_const_exp = static_cast<tree::ConstExp *>(binop_exp->left_);
-        auto result_reg = temp::TempFactory::NewTemp();
+        auto result_reg = temp::TempFactory::NewTemp(false);
         auto right_temp = binop_exp->right_->Munch(instr_list, fs);
         std::string instr_assem = "movq " + std::to_string(left_const_exp->consti_) + "(`s0), `d0";
         auto dst_list = new temp::TempList();
@@ -656,7 +657,7 @@ temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
          *        CONST
         */
         auto right_const_exp = static_cast<tree::ConstExp *>(binop_exp->right_);
-        auto result_reg = temp::TempFactory::NewTemp();
+        auto result_reg = temp::TempFactory::NewTemp(false);
         auto left_temp = binop_exp->left_->Munch(instr_list, fs);
         std::string instr_assem = "movq " + std::to_string(right_const_exp->consti_) + "(`s0), `d0";
         auto dst_list = new temp::TempList();
@@ -679,7 +680,7 @@ temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
    *   MEM
    *    |
   */
-  auto result_reg = temp::TempFactory::NewTemp();
+  auto result_reg = temp::TempFactory::NewTemp(false);
   auto src_temp = exp_->Munch(instr_list, fs);
   std::string instr_assem = "movq (`s0), `d0";
   auto dst_list = new temp::TempList();
@@ -702,7 +703,7 @@ temp::Temp *TempExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   /* TODO: Put your lab5 code here */
   // if we want to use FP we should calculate(SP + k + fs).In assemble, we generate label_framesize(%rsp).
   if(temp_ == reg_manager->FramePointer()){
-    auto result_reg = temp::TempFactory::NewTemp();
+    auto result_reg = temp::TempFactory::NewTemp(false);
     std::string leaq_assem = "";
     leaq_assem.append("leaq ");
     leaq_assem.append(std::string(fs));
@@ -735,7 +736,7 @@ temp::Temp *NameExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   /**
    * use 'leaq label(%rip), temp' to represent move the addr of label into temp
   */
-  auto result_reg = temp::TempFactory::NewTemp();
+  auto result_reg = temp::TempFactory::NewTemp(false);
   std::string leaq_assem = "";
   leaq_assem.append("leaq ");
   leaq_assem.append(name_->Name());
@@ -754,7 +755,7 @@ temp::Temp *NameExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 
 temp::Temp *ConstExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   /* TODO: Put your lab5 code here */
-  auto result_reg = temp::TempFactory::NewTemp();
+  auto result_reg = temp::TempFactory::NewTemp(false);
   std::string mov_assem = "movq $" + std::to_string(consti_) + ", `d0";
   auto dst_list = new temp::TempList();
   dst_list->Append(result_reg);
@@ -805,6 +806,13 @@ temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   else{
     return reg_manager->ReturnValue();
   }
+  /**
+   * GC : We put a label at the end of this call
+   * then pointer map will point to this label(which is also this call's return address)
+  */
+  auto pointer_map_label = temp::LabelFactory::NewLabel();
+  instr_list.Append(new assem::LabelInstr(pointer_map_label->Name(), pointer_map_label));
+
   if(exceed_num > 0){
     // If num of args exceed, we should dealloc those args on stack
     std::string dealloc_assem = "addq $" + std::to_string(exceed_num * reg_manager->WordSize()) + ", `d0";

@@ -66,7 +66,7 @@ struct ExpRefList {
     } else {
       tree::Exp *&ref = refs.front().get();
       if (typeid(*ref) == typeid(tree::CallExp)) {
-        temp::Temp *t = temp::TempFactory::NewTemp();
+        temp::Temp *t = temp::TempFactory::NewTemp(false);
         ref = new tree::EseqExp(new tree::MoveStm(new tree::TempExp(t), ref),
                                 new tree::TempExp(t));
         return Reorder();
@@ -78,7 +78,7 @@ struct ExpRefList {
           ref = hd.e_;
           return tree::Stm::Seq(hd.s_, s);
         } else {
-          temp::Temp *t = temp::TempFactory::NewTemp();
+          temp::Temp *t = temp::TempFactory::NewTemp(false);
           ref = new tree::TempExp(t);
           return tree::Stm::Seq(
               hd.s_, tree::Stm::Seq(

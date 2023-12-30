@@ -55,7 +55,7 @@ public:
 
   Access(Level *level, frame::Access *access)
       : level_(level), access_(access) {}
-  static Access *AllocLocal(Level *level, bool escape);
+  static Access *AllocLocal(Level *level, bool escape, bool is_pointer);
 };
 
 /**
@@ -70,7 +70,7 @@ public:
   Level *parent_;
 
   /* TODO: Put your lab5 code here */
-  Level(tr::Level *parent, temp::Label *name, std::list<bool> *formals);
+  Level(tr::Level *parent, temp::Label *name, std::list<bool> *formals, std::list<bool> *is_pointer);
 };
 
 class ProgTr {
@@ -79,7 +79,7 @@ public:
   ProgTr(std::unique_ptr<absyn::AbsynTree> absyn_tree, std::unique_ptr<err::ErrorMsg> error_msg)
     :absyn_tree_(std::move(absyn_tree)),
     errormsg_(std::move(error_msg)),
-    main_level_(new tr::Level(nullptr, temp::LabelFactory::NamedLabel("tigermain"), nullptr)),
+    main_level_(new tr::Level(nullptr, temp::LabelFactory::NamedLabel("tigermain"), nullptr, nullptr)),
     tenv_(new env::TEnv),
     venv_(new env::VEnv){
       FillBaseTEnv();

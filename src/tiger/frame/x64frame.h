@@ -20,7 +20,7 @@ class InFrameAccess : public Access {
 public:
   int offset;
 
-  explicit InFrameAccess(int offset) : offset(offset) {}
+  explicit InFrameAccess(int offset, bool is_pointer) : Access(is_pointer), offset(offset) {}
   /* TODO: Put your lab5 code here */
   tree::Exp* ToExp(tree::Exp* framePtr) const override;
 };
@@ -29,7 +29,7 @@ class InRegAccess : public Access {
 public:
   temp::Temp *reg;
 
-  explicit InRegAccess(temp::Temp *reg) : reg(reg) {}
+  explicit InRegAccess(temp::Temp *reg, bool is_pointer) : Access(is_pointer), reg(reg) {}
   /* TODO: Put your lab5 code here */
   tree::Exp* ToExp(tree::Exp* framePtr) const override;
 };
@@ -37,8 +37,8 @@ public:
 class X64Frame : public Frame {
   /* TODO: Put your lab5 code here */
 public:
-  X64Frame(temp::Label* name, std::list<bool>* formals);
-  frame::Access* AllocLocal(bool escape) override;
+  X64Frame(temp::Label* name, std::list<bool>* formals, std::list<bool>* is_pointer);
+  frame::Access* AllocLocal(bool escape, bool is_pointer) override;
 };
 
 class X64RegManager : public RegManager {
