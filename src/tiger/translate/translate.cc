@@ -1049,11 +1049,14 @@ tr::Exp *VarDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                            tr::Level *level, temp::Label *label,
                            err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
+  auto init_exp_ty = init_->Translate(venv, tenv, level, label, errormsg);
   auto typ_ty = tenv->Look(typ_);
+  if(typ_ty == nullptr){
+    typ_ty = init_exp_ty->ty_;
+  }
   bool is_pointer = type::isPointer(typ_ty);
   // call 'AllocLocal' to create a new local variable
   auto var_access = tr::Access::AllocLocal(level, escape_, is_pointer);
-  auto init_exp_ty = init_->Translate(venv, tenv, level, label, errormsg);
   venv->Enter(var_, new env::VarEntry(var_access, init_exp_ty->ty_->ActualTy(), false));
   auto mem_exp = var_access->access_->ToExp(tr::FindFP(level, level));
   return new tr::NxExp(
