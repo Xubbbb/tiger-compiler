@@ -1068,6 +1068,43 @@ tr::Exp *TypeDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     type::NameTy* name_ty = static_cast<type::NameTy *>(tenv->Look((*type_dec_it)->name_));
     name_ty->ty_ = (*type_dec_it)->ty_->Translate(tenv, errormsg);
   }
+  /**
+   * Create record's descriptor as a string fragment in .data section
+   * Attention: we should create record's descriptor here
+   * You can't create descriptor in RecordTy::Translate
+   * because in RecordTy::Translate some record's field may be a pointer to another record
+   * and its NameTy's ty_ is nullptr, so we can't judge whether this field is a pointer or not
+   * just like "type node = { key: int, left: node, right: node }""
+  */
+  type_dec_it = type_dec_list.begin();
+  for(;type_dec_it != type_dec_list.end();++type_dec_it){
+    type::NameTy* name_ty = static_cast<type::NameTy *>(tenv->Look((*type_dec_it)->name_));
+    auto actual_ty = name_ty->ty_->ActualTy();
+    if(typeid(*actual_ty) == typeid(type::RecordTy)){
+      auto record_ty = static_cast<type::RecordTy *>(actual_ty);
+      if(record_ty->label_ == nullptr){
+        auto field_list = record_ty->fields_->GetList();
+        std::string descriptor = "";
+        for(auto field : field_list){
+          if(type::isPointer(field->ty_)){
+            descriptor += "1";
+          }
+          else{
+            descriptor += "0";
+          }
+        }
+        record_ty->label_ = temp::LabelFactory::NewLabel();
+        //!debug//
+        std::cout << name_ty->sym_->Name() << "'s descriptor created: " << descriptor << std::endl;
+        std::cout << "Field name list:" << std::endl;
+        for(auto field : field_list){
+          std::cout << field->name_->Name() << std::endl;
+        } 
+        //!debug//
+        frags->PushBack(new frame::StringFrag(record_ty->label_, descriptor));
+      }
+    }
+  }
   return new tr::ExExp(
     new tree::ConstExp(0) 
   );
@@ -1082,31 +1119,8 @@ type::Ty *NameTy::Translate(env::TEnvPtr tenv, err::ErrorMsg *errormsg) const {
 type::Ty *RecordTy::Translate(env::TEnvPtr tenv,
                               err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
-  /**
-   * create record's descriptor as a fragment label
-  */
   auto type_fieldlist = record_->MakeFieldList(tenv, errormsg);
-  auto type_list = type_fieldlist->GetList();
-  std::string descriptor = "";
-  for(auto field : type_list){
-    if(type::isPointer(field->ty_)){
-      descriptor += "1";
-    }
-    else{
-      descriptor += "0";
-    }
-  }
-  //!debug//
-  // std::cout << "A new descriptor created: " << descriptor << std::endl;
-  // std::cout << "Field name list:" << std::endl;
-  // for(auto field : type_list){
-  //   std::cout << field->name_->Name() << std::endl;
-  // } 
-  //!debug//
-  auto frag_label = temp::LabelFactory::NewLabel();
-  frags->PushBack(new frame::StringFrag(frag_label, descriptor));
-
-  return new type::RecordTy(type_fieldlist, frag_label);
+  return new type::RecordTy(type_fieldlist, nullptr);
 }
 
 type::Ty *ArrayTy::Translate(env::TEnvPtr tenv, err::ErrorMsg *errormsg) const {
