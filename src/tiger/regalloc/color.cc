@@ -44,11 +44,15 @@ col::Result Color::RAColor(){
 }
 
 void Color::Build(){
-    auto fg_fac = fg::FlowGraphFactory(instr_list);
-    fg_fac.AssemFlowGraph();
-    auto live_fac = live::LiveGraphFactory(fg_fac.GetFlowGraph());
-    live_fac.Liveness();
-    auto lg = live_fac.GetLiveGraph();
+    flow_fac = new fg::FlowGraphFactory(instr_list);
+    flow_fac->AssemFlowGraph();
+    // auto fg_fac = fg::FlowGraphFactory(instr_list);
+    // fg_fac.AssemFlowGraph();
+    live_fac = new live::LiveGraphFactory(flow_fac->GetFlowGraph());
+    live_fac->Liveness();
+    // auto live_fac = live::LiveGraphFactory(fg_fac.GetFlowGraph());
+    // live_fac.Liveness();
+    auto lg = live_fac->GetLiveGraph();
     ig = lg.interf_graph;
     precolored = new live::INodeList();
     simplifyWorklist = new live::INodeList();
@@ -71,7 +75,7 @@ void Color::Build(){
     color = new graph::Table<temp::Temp, temp::Temp>();
 
     auto reg_list = reg_manager->Registers()->GetList();
-    auto node_map = live_fac.GetTempNodeMap();
+    auto node_map = live_fac->GetTempNodeMap();
     for(auto reg : reg_list){
         auto reg_node = node_map->Look(reg);
         precolored->Append(reg_node);

@@ -342,7 +342,8 @@ assem::InstrList* ProcEntryExit2(assem::InstrList * body){
 }
 
 assem::Proc* ProcEntryExit3(frame::Frame* frame, assem::InstrList* body){
-  int framesize = (-frame->offset) + frame->max_exceed_args * reg_manager->WordSize();
+  // Prepare the space on stack for exceed arguments and callee saves
+  int framesize = (-frame->offset) + (frame->max_exceed_args + reg_manager->CalleeSaves()->GetList().size())* reg_manager->WordSize();
   std::string prologue = ".set " + frame->GetLabel() + "_framesize, " + std::to_string(framesize) + "\n";
   prologue += frame->GetLabel() + ":\n";
   prologue += "subq $" + std::to_string(framesize) + ", %rsp\n";

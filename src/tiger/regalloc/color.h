@@ -20,6 +20,8 @@ class Color {
 public:
   const int K = 15;
   assem::InstrList* instr_list;
+  fg::FlowGraphFactory* flow_fac;
+  live::LiveGraphFactory* live_fac;
   live::IGraphPtr ig;
 
   live::INodeListPtr precolored;

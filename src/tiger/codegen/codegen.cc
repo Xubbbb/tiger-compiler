@@ -773,6 +773,27 @@ temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   /* TODO: Put your lab5 code here */
   auto arg_list = args_->GetList();
   int exceed_num = static_cast<int>(arg_list.size()) - static_cast<int>(reg_manager->ArgRegs()->GetList().size());
+  /**
+   * For GC, we should push all callee-save registers before call to stack
+  */
+  exceed_num = exceed_num > 0 ? exceed_num : 0;
+  auto callee_save_list = reg_manager->CalleeSaves()->GetList();
+  auto callee_it = callee_save_list.begin();
+  for(int i = 0;callee_it != callee_save_list.end();++i, ++callee_it){
+    std::string mov_assem = "movq `s0, " + std::to_string(((callee_save_list.size() - 1) - i + exceed_num) * reg_manager->WordSize()) + "(`s1)";
+    auto src_list = new temp::TempList();
+    src_list->Append(*callee_it);
+    src_list->Append(reg_manager->StackPointer());
+    assem::Instr* mov_instr = new assem::OperInstr(
+      mov_assem,
+      nullptr,
+      src_list,
+      nullptr
+    );
+    instr_list.Append(mov_instr);
+  }
+
+
   //! We shouldn't change %rsp here, we will calculate the max exceed num in static compilation
   //! and regard them as a part of static frame, not like "allocating them before call, deallocate them"
   //! "after call". If we change %rsp, we must use %rbp, we can't use %rsp + framesize to replace %rbp
@@ -815,7 +836,7 @@ temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
    * GC : We put a label at the end of this call
    * then pointer map will point to this label(which is also this call's return address)
   */
-  auto pointer_map_label = temp::LabelFactory::NewLabel();
+  auto pointer_map_label = temp::LabelFactory::NewLabel(exceed_num);
   instr_list.Append(new assem::LabelInstr(pointer_map_label->Name(), pointer_map_label));
 
   //! Wrong Implement

@@ -15,6 +15,22 @@ Label *LabelFactory::NewLabel() {
   return NamedLabel(std::string(buf));
 }
 
+Label *LabelFactory::NewLabel(int exceed_arg_num) {
+  char buf[100];
+  sprintf(buf, "L%d", label_factory.label_id_++);
+  auto res = NamedLabel(std::string(buf));
+  label_factory.label_exceed_arg_num_map_[res] = exceed_arg_num;
+  return res;
+}
+
+int LabelFactory::LabelExceedArgNum(Label *s) {
+  if (label_factory.label_exceed_arg_num_map_.find(s) ==
+      label_factory.label_exceed_arg_num_map_.end())
+    return 0;
+  else
+    return label_factory.label_exceed_arg_num_map_[s];
+}
+
 /**
  * Get symbol of a label_. The label_ will be created only if it is not found.
  * @param s label_ string

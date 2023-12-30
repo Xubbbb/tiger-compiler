@@ -24,11 +24,112 @@ void AssemGen::GenAssem(bool need_ra) {
   fprintf(out_, ".section .rodata\n");
   for (auto &&frag : frags->GetList())
     frag->OutputAssem(out_, phase, need_ra);
+
+  // Output pointermap
+  fprintf(out_, ".global GLOBAL_GC_ROOTS\n");
+  fprintf(out_, ".data\n");
+  fprintf(out_, "GLOBAL_GC_ROOTS:\n");
+  for(auto &&pointermap : pointermap_list) {
+    fprintf(out_, "%s:\n", pointermap.label_.data());
+    fprintf(out_, ".quad %s\n", pointermap.next_label_.data());
+    fprintf(out_, ".quad %s\n", pointermap.key_label_.data());
+    fprintf(out_, ".quad 0x%x\n", pointermap.framesize);
+    for(auto offset : pointermap.root_offsets) {
+      fprintf(out_, ".quad %d\n", offset);
+    }
+    fprintf(out_, ".quad %s\n", pointermap.endmap.data());
+  }
 }
 
 } // namespace output
 
 namespace frame {
+/**
+ * @brief Generate pointer map for a frame
+ * @details We will find every "callq" instruction in this function and generate a pointer map for it
+ * @param frame The frame to generate pointer map
+ * @param fnode_list The flow graph of this function, we will use it to find the "callq" instruction
+ * @param in_live The liveness analysis result of this function, we will use it to find the live registers before "callq" instruction
+ * @param color The register allocation result of this function, we will use it to find the register name
+*/
+void generatePointerMap(frame::Frame *frame, fg::FNodeListPtr fnode_list, graph::Table<assem::Instr, temp::TempList> *in_live,temp::Map *color) {
+  std::vector<int> root_offsets;
+  std::vector<temp::Temp*> root_temps;
+  std::vector<std::string> callee_save_list{"%rbx", "%rbp", "%r12", "%r13", "%r14", "%r15"};
+  
+
+  auto frame_locals = *(frame->locals);
+  for(auto local_var : frame_locals) {
+    if(local_var->is_pointer){
+      if(typeid(*local_var) == typeid(frame::InFrameAccess)){
+        auto frame_access = static_cast<frame::InFrameAccess*>(local_var);
+        root_offsets.push_back(frame_access->offset);
+      }
+      else if(typeid(*local_var) == typeid(frame::InRegAccess)){
+        auto reg_access = static_cast<frame::InRegAccess*>(local_var);
+        root_temps.push_back(reg_access->reg);
+      }
+    }
+  }
+
+  auto fnodes = fnode_list->GetList();
+  for (auto fnode = fnodes.begin(); fnode != fnodes.end(); fnode++) {
+    auto instr = (*fnode)->NodeInfo();
+    if(typeid(*instr) == typeid(assem::OperInstr)){
+      auto oper_instr = static_cast<assem::OperInstr*>(instr);
+      auto assem_str = oper_instr->assem_;
+      if(assem_str.substr(0, 5) == "callq"){
+        auto next_fnode = std::next(fnode);
+        auto next_label = (*next_fnode)->NodeInfo();
+        if(typeid(*next_label) == typeid(assem::LabelInstr)){
+          auto label_instr = static_cast<assem::LabelInstr*>(next_label);
+          auto exceed_arg_num = temp::LabelFactory::LabelExceedArgNum(label_instr->label_);
+          gc::AssemPointerMap pointermap;
+          pointermap.label_ = "L" + label_instr->label_->Name();
+          pointermap.key_label_ = label_instr->label_->Name();
+          pointermap.framesize = (-frame->offset) + (frame->max_exceed_args + reg_manager->CalleeSaves()->GetList().size()) * reg_manager->WordSize();
+          auto live_temps = in_live->Look(*fnode);
+          for(int i = 0;i < root_temps.size();++i){
+            bool is_live = false;
+            for(auto live_temp : live_temps->GetList()){
+              if(live_temp == root_temps[i]){
+                is_live = true;
+                break;
+              }
+            }
+            if(is_live){
+              for(int j = 0;j < callee_save_list.size();++j){
+                if(color->Look(root_temps[i])->compare(callee_save_list[j]) == 0){
+                  auto offset = (-pointermap.framesize) + (callee_save_list.size() - 1 - j + exceed_arg_num) * reg_manager->WordSize();
+                  bool is_in_root_offsets = false;
+                  for(auto root_offset : root_offsets){
+                    if(root_offset == offset){
+                      is_in_root_offsets = true;
+                      break;
+                    }
+                  }
+                  if(!is_in_root_offsets){
+                    root_offsets.push_back(offset);
+                  }
+                  break;
+                }
+              }
+            }
+          }
+          pointermap.root_offsets = root_offsets;
+          pointermap.endmap = "1";
+          if(pointermap_list.empty()){
+            pointermap_list.push_back(pointermap);
+          }
+          else{
+            pointermap_list.back().next_label_ = pointermap.label_;
+            pointermap_list.push_back(pointermap);
+          }
+        }
+      }
+    }
+  }
+}
 
 void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
   std::unique_ptr<canon::Traces> traces;
@@ -85,6 +186,7 @@ void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
     allocation = reg_allocator.TransferResult();
     il = allocation->il_;
     color = temp::Map::LayerMap(reg_manager->temp_map_, allocation->coloring_);
+    generatePointerMap(frame_, reg_allocator.color_->flow_fac->GetFlowGraph()->Nodes(), reg_allocator.color_->live_fac->in_.get(), color);
   }
 
   TigerLog("-------====Output assembly for %s=====-----\n",

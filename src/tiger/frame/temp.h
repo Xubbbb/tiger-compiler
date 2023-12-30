@@ -10,6 +10,7 @@
 #include "tiger/symbol/symbol.h"
 
 #include <list>
+#include <map>
 
 namespace temp {
 
@@ -18,11 +19,14 @@ using Label = sym::Symbol;
 class LabelFactory {
 public:
   static Label *NewLabel();
+  static Label *NewLabel(int exceed_arg_num);
+  static int LabelExceedArgNum(Label *s);
   static Label *NamedLabel(std::string_view name);
   static std::string LabelString(Label *s);
 
 private:
   int label_id_ = 0;
+  std::map<Label*, int> label_exceed_arg_num_map_ = {};
   static LabelFactory label_factory;
 };
 

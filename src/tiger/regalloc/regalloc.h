@@ -28,13 +28,12 @@ public:
 
 class RegAllocator {
   /* TODO: Put your lab6 code here */
-private:
+public:
   frame::Frame* frame_;
   std::unique_ptr<cg::AssemInstr> assem_instr_;
   col::Color* color_;
   temp::Map* coloring_;
 
-public:
   RegAllocator(frame::Frame* frame, std::unique_ptr<cg::AssemInstr> assem_instr);
   ~RegAllocator();
   void RegAlloc();
