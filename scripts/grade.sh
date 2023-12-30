@@ -277,6 +277,55 @@ test_lab6() {
   fi
 }
 
+test_lab7() {
+  local score_str="LAB7 SCORE"
+  local testcase_dir=${WORKDIR}/testdata/lab7/testcases
+  local ref_dir=${WORKDIR}/testdata/lab7/refs
+  local runtime_path=${WORKDIR}/src/tiger/runtime/runtime.cc
+  local heap_path=${WORKDIR}/src/tiger/runtime/gc/heap/derived_heap.cc
+  local score=0
+  local full_score=1
+  local testcase_name
+
+  build tiger-compiler
+  for testcase in "$testcase_dir"/*.tig; do
+    testcase_name=$(basename "$testcase" | cut -f1 -d".")
+    local ref=${ref_dir}/${testcase_name}.out
+    local assem=$testcase.s
+
+    ./tiger-compiler "$testcase" &>/dev/null
+    g++ -Wl,--wrap,getchar -m64 "$assem" "$runtime_path" "$heap_path" -o test.out &>/dev/null
+    if [ ! -s test.out ]; then
+      echo "Error: Link error [$testcase_name]"
+      full_score=0
+      continue
+    fi
+
+    ./test.out >&/tmp/output.txt
+    diff -w -B /tmp/output.txt "$ref"
+    if [[ $? != 0 ]]; then
+      echo "Error: Output mismatch [$testcase_name]"
+      full_score=0
+      continue
+    fi
+    echo "Pass $testcase_name"
+    if [[ $testcase_name == "bigger_tree" ]]; then
+      score=$((score + 30))
+    else
+      score=$((score + 40))
+    fi
+  done
+
+  if [[ $full_score == 0 ]]; then
+    echo "${score_str}: ${score}"
+    exit 1
+  else
+    echo "[^_^]: Pass"
+    echo "${score_str}: 100"
+  fi
+}
+
+
 main() {
   local scope=$1
 
@@ -311,6 +360,9 @@ main() {
   elif [[ $scope == "lab6" ]]; then
     echo "========== Lab6 Test =========="
     test_lab6
+  elif [[ $scope == "lab7" ]]; then
+    echo "========== Lab7 Test =========="
+    test_lab7
   elif [[ $scope == "all" ]]; then
     echo "========== Lab1 Test =========="
     test_lab1
@@ -324,12 +376,6 @@ main() {
     test_lab5_part1
     echo "========== Lab5 part-2 Test =========="
     test_lab5_part2
-    echo "========== Lab6 Test =========="
-    test_lab6
-    echo "========== Lab5 part-1 Test =========="
-    test_lab5_part1
-    echo "========== Lab5 Test =========="
-    test_lab5
     echo "========== Lab6 Test =========="
     test_lab6
     echo "========== Lab7 Test =========="

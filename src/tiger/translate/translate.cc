@@ -1097,11 +1097,11 @@ type::Ty *RecordTy::Translate(env::TEnvPtr tenv,
     }
   }
   //!debug//
-  std::cout << "A new descriptor created: " << descriptor << std::endl;
-  std::cout << "Field name list:" << std::endl;
-  for(auto field : type_list){
-    std::cout << field->name_->Name() << std::endl;
-  } 
+  // std::cout << "A new descriptor created: " << descriptor << std::endl;
+  // std::cout << "Field name list:" << std::endl;
+  // for(auto field : type_list){
+  //   std::cout << field->name_->Name() << std::endl;
+  // } 
   //!debug//
   auto frag_label = temp::LabelFactory::NewLabel();
   frags->PushBack(new frame::StringFrag(frag_label, descriptor));
