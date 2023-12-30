@@ -7,6 +7,7 @@
 #include "tiger/frame/x64frame.h"
 #include "tiger/frame/temp.h"
 #include "tiger/frame/frame.h"
+#include <iostream>
 
 extern frame::Frags *frags;
 extern frame::RegManager *reg_manager;
@@ -544,15 +545,27 @@ tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
   auto ty_res = tenv->Look(typ_)->ActualTy();
+  /**
+   * GC get the record's type's descriptor
+  */
+  if(typeid(*ty_res) != typeid(type::RecordTy)){
+    errormsg->Error(pos_, "undefined type %s", typ_->Name().data());
+    return new tr::ExpAndTy(nullptr, type::VoidTy::Instance());
+  }
+  auto record_ty = static_cast<type::RecordTy*>(ty_res);
   auto exp_field_list = fields_->GetList();
   auto result_reg = temp::TempFactory::NewTemp();
-  const auto ALLOC_SIZE = exp_field_list.size() * reg_manager->WordSize();
+  // const auto ALLOC_SIZE = exp_field_list.size() * reg_manager->WordSize();
+  /**
+   * change alloc_record's param from a int to a pointer to descriptor
+  */
   tree::Stm* alloc_move_stm = new tree::MoveStm(
     new tree::TempExp(result_reg),
     frame::ExternalCall(
       "alloc_record",
       new tree::ExpList{
-        new tree::ConstExp(ALLOC_SIZE)
+        // new tree::ConstExp(ALLOC_SIZE)
+        new tree::NameExp(record_ty->label_)
       }
     )
   );
@@ -1069,7 +1082,31 @@ type::Ty *NameTy::Translate(env::TEnvPtr tenv, err::ErrorMsg *errormsg) const {
 type::Ty *RecordTy::Translate(env::TEnvPtr tenv,
                               err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
-  return new type::RecordTy(record_->MakeFieldList(tenv, errormsg));
+  /**
+   * create record's descriptor as a fragment label
+  */
+  auto type_fieldlist = record_->MakeFieldList(tenv, errormsg);
+  auto type_list = type_fieldlist->GetList();
+  std::string descriptor = "";
+  for(auto field : type_list){
+    if(type::isPointer(field->ty_)){
+      descriptor += "1";
+    }
+    else{
+      descriptor += "0";
+    }
+  }
+  //!debug//
+  std::cout << "A new descriptor created: " << descriptor << std::endl;
+  std::cout << "Field name list:" << std::endl;
+  for(auto field : type_list){
+    std::cout << field->name_->Name() << std::endl;
+  } 
+  //!debug//
+  auto frag_label = temp::LabelFactory::NewLabel();
+  frags->PushBack(new frame::StringFrag(frag_label, descriptor));
+
+  return new type::RecordTy(type_fieldlist, frag_label);
 }
 
 type::Ty *ArrayTy::Translate(env::TEnvPtr tenv, err::ErrorMsg *errormsg) const {

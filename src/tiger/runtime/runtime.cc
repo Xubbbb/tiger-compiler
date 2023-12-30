@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 // Note: change to header file of your implemnted heap!
+#include "../runtime/gc/heap/derived_heap.h"
 #include "../runtime/gc/heap/heap.h"
 
 #ifndef EXTERNC
@@ -12,6 +13,11 @@
 
 EXTERNC int tigermain(int);
 gc::TigerHeap *tiger_heap = nullptr;
+
+/**
+ * change to my implementation of heap
+*/
+//gc::DerivedHeap *tiger_heap = nullptr;
 
 #define CHECK_HEAP \
     do { \
@@ -58,15 +64,32 @@ struct string {
   unsigned char chars[1];
 };
 
-EXTERNC int *alloc_record(int size) {
+
+/**
+ * For GC, we should change the param of alloc_record to a string
+ * which contains every field of the record whether it is a pointer or not.
+*/
+EXTERNC int *alloc_record(struct string *descriptor) {
   int i;
   int *p, *a;
+
+  /**
+   * except fields, we need one more word to store the descriptor
+  */
+  int size = (descriptor->length + 1) * gc::TigerHeap::WORD_SIZE;
   p = a = (int *)tiger_heap->Allocate(size);
   if(!p) {
     tiger_heap->GC();
     p = a = (int *)tiger_heap->Allocate(size);
   }
   for (i = 0; i < size; i += sizeof(int)) *p++ = 0;
+  auto descriptor_ptr = reinterpret_cast<struct string**>(a);
+  *descriptor_ptr = descriptor;
+  /**
+   * move the pointer to the first field
+   * so the Tiger module won't feel the descriptor
+  */
+  a = reinterpret_cast<int*>(descriptor_ptr + 1);
   return a;
 }
 

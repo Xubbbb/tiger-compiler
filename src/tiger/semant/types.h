@@ -2,6 +2,7 @@
 #define TIGER_SEMANT_TYPES_H_
 
 #include "tiger/symbol/symbol.h"
+#include "tiger/frame/temp.h"
 #include <list>
 
 namespace type {
@@ -54,8 +55,19 @@ private:
 class RecordTy : public Ty {
 public:
   FieldList *fields_;
+  /**
+   * When a record type was first declared in code
+   * we will generate a fragment for its descriptor in .data just like
+   * string and and give this fragment a label.
+   * We should store this label in this record type.
+   * When a record instance was created, we should
+   * pass this fragment label(present descriptor's address)
+   * to external function alloc_record
+  */
+  temp::Label*  label_;
 
-  explicit RecordTy(FieldList *fields) : fields_(fields) {}
+  explicit RecordTy(FieldList *fields) : fields_(fields),label_(nullptr) {}
+  explicit RecordTy(FieldList *fields, temp::Label* label) : fields_(fields), label_(label) {}
 };
 
 class ArrayTy : public Ty {
@@ -107,6 +119,8 @@ public:
 private:
   std::list<Field *> field_list_;
 };
+
+bool isPointer(Ty* ty);
 
 } // namespace type
 

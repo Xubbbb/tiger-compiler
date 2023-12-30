@@ -25,4 +25,9 @@ bool Ty::IsSameType(Ty *expected) {
   return a == b;
 }
 
+bool isPointer(Ty* ty){
+  auto actual_ty = ty->ActualTy();
+  return typeid(*actual_ty) == typeid(type::ArrayTy) || typeid(*actual_ty) == typeid(type::RecordTy) || typeid(*actual_ty) == typeid(type::NilTy);
+}
+
 } // namespace type
