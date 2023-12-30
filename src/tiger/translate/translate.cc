@@ -337,6 +337,13 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   else{
     exp_res = new tr::ExExp(frame::ExternalCall(func_->Name(), call_exp_args_));
   }
+  
+  //! We should calculate the max_args_num of function call in this frame
+  if(call_exp_args_->GetList().size() > reg_manager->ArgRegs()->GetList().size()){
+    //! call_exp_args already consider the static link problem
+    int exceed_num = call_exp_args_->GetList().size() - reg_manager->ArgRegs()->GetList().size();
+    level->frame_->max_exceed_args = (exceed_num > level->frame_->max_exceed_args) ? exceed_num : level->frame_->max_exceed_args;
+  }
 
   return new tr::ExpAndTy(exp_res, ty_res);
 }

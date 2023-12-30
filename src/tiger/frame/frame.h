@@ -96,6 +96,11 @@ public:
   std::list<frame::Access *> *locals;
   // record if a new local var is allocated on the stack, what offset will it get
   int offset;
+  /**
+   * record the max number of arguments exceeding the limit of 
+   * function call's max arg in register which is in this frame
+  */
+  int max_exceed_args;
 
   Frame(){}
   /**
@@ -113,6 +118,7 @@ public:
     formals(nullptr),
     locals(nullptr)
   {
+    max_exceed_args = 0;
   }
 
   /**

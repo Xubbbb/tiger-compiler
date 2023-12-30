@@ -773,21 +773,26 @@ temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   /* TODO: Put your lab5 code here */
   auto arg_list = args_->GetList();
   int exceed_num = static_cast<int>(arg_list.size()) - static_cast<int>(reg_manager->ArgRegs()->GetList().size());
-  if(exceed_num > 0){
-    // This means that we should allocate space on stack to pass some args
-    std::string alloc_assem = "subq $" + std::to_string(exceed_num * reg_manager->WordSize()) + ", `d0";
-    auto dst_list = new temp::TempList();
-    dst_list->Append(reg_manager->StackPointer());
-    auto src_list = new temp::TempList();
-    src_list->Append(reg_manager->StackPointer());
-    assem::Instr* alloc_instr = new assem::OperInstr(
-      alloc_assem,
-      dst_list,
-      src_list,
-      nullptr
-    );
-    instr_list.Append(alloc_instr);
-  }
+  //! We shouldn't change %rsp here, we will calculate the max exceed num in static compilation
+  //! and regard them as a part of static frame, not like "allocating them before call, deallocate them"
+  //! "after call". If we change %rsp, we must use %rbp, we can't use %rsp + framesize to replace %rbp
+  //! anymore. For example, you want to pass a local var on stack to the exceed argument slot. It will
+  //! be wrong to use %rsp + framesize to get frame pointer!
+  // if(exceed_num > 0){
+  //   // This means that we should allocate space on stack to pass some args
+  //   std::string alloc_assem = "subq $" + std::to_string(exceed_num * reg_manager->WordSize()) + ", `d0";
+  //   auto dst_list = new temp::TempList();
+  //   dst_list->Append(reg_manager->StackPointer());
+  //   auto src_list = new temp::TempList();
+  //   src_list->Append(reg_manager->StackPointer());
+  //   assem::Instr* alloc_instr = new assem::OperInstr(
+  //     alloc_assem,
+  //     dst_list,
+  //     src_list,
+  //     nullptr
+  //   );
+  //   instr_list.Append(alloc_instr);
+  // }
   auto calldefs_list = reg_manager->CallerSaves();
   calldefs_list->Append(reg_manager->ReturnValue());
   auto src_list = args_->MunchArgs(instr_list, fs);
@@ -813,21 +818,22 @@ temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   auto pointer_map_label = temp::LabelFactory::NewLabel();
   instr_list.Append(new assem::LabelInstr(pointer_map_label->Name(), pointer_map_label));
 
-  if(exceed_num > 0){
-    // If num of args exceed, we should dealloc those args on stack
-    std::string dealloc_assem = "addq $" + std::to_string(exceed_num * reg_manager->WordSize()) + ", `d0";
-    auto dst_list = new temp::TempList();
-    dst_list->Append(reg_manager->StackPointer());
-    auto src_list = new temp::TempList();
-    src_list->Append(reg_manager->StackPointer());
-    assem::Instr* dealloc_instr = new assem::OperInstr(
-      dealloc_assem,
-      dst_list,
-      src_list,
-      nullptr
-    );
-    instr_list.Append(dealloc_instr);
-  }
+  //! Wrong Implement
+  // if(exceed_num > 0){
+  //   // If num of args exceed, we should dealloc those args on stack
+  //   std::string dealloc_assem = "addq $" + std::to_string(exceed_num * reg_manager->WordSize()) + ", `d0";
+  //   auto dst_list = new temp::TempList();
+  //   dst_list->Append(reg_manager->StackPointer());
+  //   auto src_list = new temp::TempList();
+  //   src_list->Append(reg_manager->StackPointer());
+  //   assem::Instr* dealloc_instr = new assem::OperInstr(
+  //     dealloc_assem,
+  //     dst_list,
+  //     src_list,
+  //     nullptr
+  //   );
+  //   instr_list.Append(dealloc_instr);
+  // }
   return reg_manager->ReturnValue();
 }
 

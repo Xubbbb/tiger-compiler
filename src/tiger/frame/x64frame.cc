@@ -342,10 +342,11 @@ assem::InstrList* ProcEntryExit2(assem::InstrList * body){
 }
 
 assem::Proc* ProcEntryExit3(frame::Frame* frame, assem::InstrList* body){
-  std::string prologue = ".set " + frame->GetLabel() + "_framesize, " + std::to_string(-(frame->offset)) + "\n";
+  int framesize = (-frame->offset) + frame->max_exceed_args * reg_manager->WordSize();
+  std::string prologue = ".set " + frame->GetLabel() + "_framesize, " + std::to_string(framesize) + "\n";
   prologue += frame->GetLabel() + ":\n";
-  prologue += "subq $" + std::to_string(-(frame->offset)) + ", %rsp\n";
-  std::string epilogue = "addq $" + std::to_string(-(frame->offset)) + ", %rsp\n";
+  prologue += "subq $" + std::to_string(framesize) + ", %rsp\n";
+  std::string epilogue = "addq $" + std::to_string(framesize) + ", %rsp\n";
   epilogue += "retq\n";
   return new assem::Proc(prologue, body, epilogue);
 }
