@@ -167,6 +167,7 @@ X64Frame::X64Frame(temp::Label* name, std::list<bool>* formals, std::list<bool>*
   :Frame(name, formals, is_pointer)
 { 
   offset = 0;
+  locals = new std::list<frame::Access *>();
   if(formals != nullptr && is_pointer != nullptr){
     this->formals = new std::list<frame::Access *>();
     auto formal_it = formals->begin();
