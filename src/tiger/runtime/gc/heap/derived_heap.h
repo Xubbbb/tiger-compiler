@@ -25,15 +25,24 @@ private:
   uint64_t from_offset;
   char* scan;
   char* next;
+
+  char* ArrayLabel;
+  char* RecordLabel;
 public:
   DerivedHeap()
-    : heap_start(nullptr), heap_end(nullptr), from(nullptr), to(nullptr), from_offset(0), scan(nullptr), next(nullptr)
+    : heap_start(nullptr), heap_end(nullptr), from(nullptr), to(nullptr), from_offset(0), scan(nullptr), next(nullptr), ArrayLabel(nullptr), RecordLabel(nullptr)
   {}
   char *Allocate(uint64_t size) override;
   uint64_t Used() const override;
   uint64_t MaxFree() const override;
   void Initialize(uint64_t size) override;
   void GC() override;
+  char* getArrayLabel() const{
+    return ArrayLabel;
+  }
+  char* getRecordLabel() const{
+    return RecordLabel;
+  }
 };
 
 } // namespace gc

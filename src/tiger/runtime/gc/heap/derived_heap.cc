@@ -33,6 +33,10 @@ void DerivedHeap::Initialize(uint64_t size) {
   from_offset = 0;
   scan = nullptr;
   next = nullptr;
+  ArrayLabel = new char[6];
+  strcpy(ArrayLabel, "Array");
+  RecordLabel = new char[7];
+  strcpy(RecordLabel, "Record");
 }
 
 void DerivedHeap::GC() {

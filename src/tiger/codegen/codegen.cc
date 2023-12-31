@@ -139,6 +139,35 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
              *            CONST
             */
             auto left_const_exp = static_cast<tree::ConstExp *>(dst_binop_exp->left_);
+            /**
+             * For GC, if right temp is a frame pointer, we should handle it specially
+            */
+            if(typeid(*(dst_binop_exp->right_)) == typeid(tree::TempExp)){
+              auto right_temp_exp = static_cast<tree::TempExp *>(dst_binop_exp->right_);
+              if(right_temp_exp->temp_ == reg_manager->FramePointer()){
+                std::string framesize_label = std::string(fs) + "_framesize";
+                std::string instr_assem = "";
+                if(left_const_exp->consti_ > 0){
+                  instr_assem = "movq $" + std::to_string(src_const_exp->consti_) + ", (" + framesize_label + "+" + std::to_string(left_const_exp->consti_) + ")(`s0)";
+                }
+                else if(left_const_exp->consti_ < 0){
+                  instr_assem = "movq $" + std::to_string(src_const_exp->consti_) + ", (" + framesize_label + std::to_string(left_const_exp->consti_) + ")(`s0)";
+                }
+                else{
+                  instr_assem = "movq $" + std::to_string(src_const_exp->consti_) + ", " + framesize_label + "(`s0)";
+                }
+                auto src_list = new temp::TempList();
+                src_list->Append(reg_manager->StackPointer());
+                assem::Instr* mov_instr = new assem::OperInstr(
+                  instr_assem,
+                  nullptr,
+                  src_list,
+                  nullptr
+                );
+                instr_list.Append(mov_instr);
+                return;
+              }
+            }
             auto right_temp = dst_binop_exp->right_->Munch(instr_list, fs); 
             std::string instr_assem = "movq $" + std::to_string(src_const_exp->consti_) + ", " + std::to_string(left_const_exp->consti_) + "(`s0)";
             auto src_list = new temp::TempList();
@@ -163,6 +192,35 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
              *                  CONST
             */
             auto right_const_exp = static_cast<tree::ConstExp *>(dst_binop_exp->right_);
+            /**
+             * For GC, if left temp is a frame pointer, we should handle it specially
+            */
+            if(typeid(*(dst_binop_exp->left_)) == typeid(tree::TempExp)){
+              auto left_temp_exp = static_cast<tree::TempExp *>(dst_binop_exp->left_);
+              if(left_temp_exp->temp_ == reg_manager->FramePointer()){
+                std::string framesize_label = std::string(fs) + "_framesize";
+                std::string instr_assem = "";
+                if(right_const_exp->consti_ > 0){
+                  instr_assem = "movq $" + std::to_string(src_const_exp->consti_) + ", (" + framesize_label + "+" + std::to_string(right_const_exp->consti_) + ")(`s0)";
+                }
+                else if(right_const_exp->consti_ < 0){
+                  instr_assem = "movq $" + std::to_string(src_const_exp->consti_) + ", (" + framesize_label + std::to_string(right_const_exp->consti_) + ")(`s0)";
+                }
+                else{
+                  instr_assem = "movq $" + std::to_string(src_const_exp->consti_) + ", " + framesize_label + "(`s0)";
+                }
+                auto src_list = new temp::TempList();
+                src_list->Append(reg_manager->StackPointer());
+                assem::Instr* mov_instr = new assem::OperInstr(
+                  instr_assem,
+                  nullptr,
+                  src_list,
+                  nullptr
+                );
+                instr_list.Append(mov_instr);
+                return;
+              }
+            }
             auto left_temp = dst_binop_exp->left_->Munch(instr_list, fs);
             std::string instr_assem = "movq $" + std::to_string(src_const_exp->consti_) + ", " + std::to_string(right_const_exp->consti_) + "(`s0)";
             auto src_list = new temp::TempList();
@@ -189,6 +247,37 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
              *            CONST
             */
             auto left_const_exp = static_cast<tree::ConstExp *>(dst_binop_exp->left_);
+            /**
+             * For GC, if right temp is a frame pointer, we should handle it specially
+            */
+            if(typeid(*(dst_binop_exp->right_)) == typeid(tree::TempExp)){
+              auto right_temp_exp = static_cast<tree::TempExp *>(dst_binop_exp->right_);
+              if(right_temp_exp->temp_ == reg_manager->FramePointer()){
+                std::string framesize_label = std::string(fs) + "_framesize";
+                auto src_temp = src_->Munch(instr_list, fs);
+                std::string instr_assem = "";
+                if(left_const_exp->consti_ > 0){
+                  instr_assem = "movq `s0, (" + framesize_label + "+" + std::to_string(left_const_exp->consti_) + ")(`s1)";
+                }
+                else if(left_const_exp->consti_ < 0){
+                  instr_assem = "movq `s0, (" + framesize_label + std::to_string(left_const_exp->consti_) + ")(`s1)";
+                }
+                else{
+                  instr_assem = "movq `s0, " + framesize_label + "(`s1)";
+                }
+                auto src_list = new temp::TempList();
+                src_list->Append(src_temp);
+                src_list->Append(reg_manager->StackPointer());
+                assem::Instr* mov_instr = new assem::OperInstr(
+                  instr_assem,
+                  nullptr,
+                  src_list,
+                  nullptr
+                );
+                instr_list.Append(mov_instr);
+                return;
+              }
+            }
             auto right_temp = dst_binop_exp->right_->Munch(instr_list, fs);
             auto src_temp = src_->Munch(instr_list, fs);
             std::string instr_assem = "movq `s0, " + std::to_string(left_const_exp->consti_) + "(`s1)";
@@ -215,6 +304,37 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
              *                  CONST
             */
             auto right_const_exp = static_cast<tree::ConstExp *>(dst_binop_exp->right_);
+            /**
+             * For GC, if left temp is a frame pointer, we should handle it specially
+            */
+            if(typeid(*(dst_binop_exp->left_)) == typeid(tree::TempExp)){
+              auto left_temp_exp = static_cast<tree::TempExp *>(dst_binop_exp->left_);
+              if(left_temp_exp->temp_ == reg_manager->FramePointer()){
+                std::string framesize_label = std::string(fs) + "_framesize";
+                auto src_temp = src_->Munch(instr_list, fs);
+                std::string instr_assem = "";
+                if(right_const_exp->consti_ > 0){
+                  instr_assem = "movq `s0, (" + framesize_label + "+" + std::to_string(right_const_exp->consti_) + ")(`s1)";
+                }
+                else if(right_const_exp->consti_ < 0){
+                  instr_assem = "movq `s0, (" + framesize_label + std::to_string(right_const_exp->consti_) + ")(`s1)";
+                }
+                else{
+                  instr_assem = "movq `s0, " + framesize_label + "(`s1)";
+                }
+                auto src_list = new temp::TempList();
+                src_list->Append(src_temp);
+                src_list->Append(reg_manager->StackPointer());
+                assem::Instr* mov_instr = new assem::OperInstr(
+                  instr_assem,
+                  nullptr,
+                  src_list,
+                  nullptr
+                );
+                instr_list.Append(mov_instr);
+                return;
+              }
+            }
             auto left_temp = dst_binop_exp->left_->Munch(instr_list, fs);
             auto src_temp = src_->Munch(instr_list, fs);
             std::string instr_assem = "movq `s0, " + std::to_string(right_const_exp->consti_) + "(`s1)";
@@ -244,6 +364,26 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
     */
     auto src_const_exp = static_cast<tree::ConstExp *>(src_);
     auto dst_mem_exp = static_cast<tree::MemExp *>(dst_);
+    /**
+     * For GC, if dst temp is a frame pointer, we should handle it specially
+    */
+    if(typeid(*(dst_mem_exp->exp_)) == typeid(tree::TempExp)){
+      auto dst_temp_exp = static_cast<tree::TempExp *>(dst_mem_exp->exp_);
+      if(dst_temp_exp->temp_ == reg_manager->FramePointer()){
+        std::string framesize_label = std::string(fs) + "_framesize";
+        std::string instr_assem = "movq $" + std::to_string(src_const_exp->consti_) + ", " + framesize_label + "(`s0)";
+        auto src_list = new temp::TempList();
+        src_list->Append(reg_manager->StackPointer());
+        assem::Instr* mov_instr = new assem::OperInstr(
+          instr_assem,
+          nullptr,
+          src_list,
+          nullptr
+        );
+        instr_list.Append(mov_instr);
+        return;
+      }
+    }
     auto dst_temp = dst_mem_exp->exp_->Munch(instr_list, fs);
     std::string instr_assem = "movq $" + std::to_string(src_const_exp->consti_) + ", (`s0)";
     auto src_list = new temp::TempList();
@@ -265,6 +405,28 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
      *                MEM     
     */
     auto dst_mem_exp = static_cast<tree::MemExp *>(dst_);
+    /**
+     * For GC, if dst temp is a frame pointer, we should handle it specially
+    */
+    if(typeid(*(dst_mem_exp->exp_)) == typeid(tree::TempExp)){
+      auto dst_temp_exp = static_cast<tree::TempExp *>(dst_mem_exp->exp_);
+      if(dst_temp_exp->temp_ == reg_manager->FramePointer()){
+        std::string framesize_label = std::string(fs) + "_framesize";
+        auto src_temp = src_->Munch(instr_list, fs);
+        std::string instr_assem = "movq `s0, " + framesize_label + "(`s1)";
+        auto src_list = new temp::TempList();
+        src_list->Append(src_temp);
+        src_list->Append(reg_manager->StackPointer());
+        assem::Instr* mov_instr = new assem::OperInstr(
+          instr_assem,
+          nullptr,
+          src_list,
+          nullptr
+        );
+        instr_list.Append(mov_instr);
+        return;
+      }
+    }
     auto dst_temp = dst_mem_exp->exp_->Munch(instr_list, fs);
     auto src_temp = src_->Munch(instr_list, fs);
     std::string instr_assem = "movq `s0, (`s1)";
@@ -299,6 +461,37 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
           */
           auto dst_temp = dst_->Munch(instr_list, fs);
           auto left_const_exp = static_cast<tree::ConstExp *>(src_binop_exp->left_);
+          /**
+           * For GC, if right temp is a frame pointer, we should handle it specially
+          */
+          if(typeid(*(src_binop_exp->right_)) == typeid(tree::TempExp)){
+            auto right_temp_exp = static_cast<tree::TempExp *>(src_binop_exp->right_);
+            if(right_temp_exp->temp_ == reg_manager->FramePointer()){
+              std::string framesize_label = std::string(fs) + "_framesize";
+              std::string instr_assem = "";
+              if(left_const_exp->consti_ > 0){
+                instr_assem = "movq (" + framesize_label + "+" + std::to_string(left_const_exp->consti_) + ")(`s0), `d0";
+              }
+              else if(left_const_exp->consti_ < 0){
+                instr_assem = "movq (" + framesize_label + std::to_string(left_const_exp->consti_) + ")(`s0), `d0";
+              }
+              else{
+                instr_assem = "movq " + framesize_label + "(`s0), `d0";
+              }
+              auto dst_list = new temp::TempList();
+              dst_list->Append(dst_temp);
+              auto src_list = new temp::TempList();
+              src_list->Append(reg_manager->StackPointer());
+              assem::Instr* mov_instr = new assem::OperInstr(
+                instr_assem,
+                dst_list,
+                src_list,
+                nullptr
+              );
+              instr_list.Append(mov_instr);
+              return;
+            }
+          }
           auto right_temp = src_binop_exp->right_->Munch(instr_list, fs);
           std::string instr_assem = "movq " + std::to_string(left_const_exp->consti_) + "(`s0), `d0";
           auto dst_list = new temp::TempList();
@@ -326,6 +519,37 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
           */
           auto dst_temp = dst_->Munch(instr_list, fs);
           auto right_const_exp = static_cast<tree::ConstExp *>(src_binop_exp->right_);
+          /**
+           * For GC, if left temp is a frame pointer, we should handle it specially
+          */
+          if(typeid(*(src_binop_exp->left_)) == typeid(tree::TempExp)){
+            auto left_temp_exp = static_cast<tree::TempExp *>(src_binop_exp->left_);
+            if(left_temp_exp->temp_ == reg_manager->FramePointer()){
+              std::string framesize_label = std::string(fs) + "_framesize";
+              std::string instr_assem = "";
+              if(right_const_exp->consti_ > 0){
+                instr_assem = "movq (" + framesize_label + "+" + std::to_string(right_const_exp->consti_) + ")(`s0), `d0";
+              }
+              else if(right_const_exp->consti_ < 0){
+                instr_assem = "movq (" + framesize_label + std::to_string(right_const_exp->consti_) + ")(`s0), `d0";
+              }
+              else{
+                instr_assem = "movq " + framesize_label + "(`s0), `d0";
+              }
+              auto dst_list = new temp::TempList();
+              dst_list->Append(dst_temp);
+              auto src_list = new temp::TempList();
+              src_list->Append(reg_manager->StackPointer());
+              assem::Instr* mov_instr = new assem::OperInstr(
+                instr_assem,
+                dst_list,
+                src_list,
+                nullptr
+              );
+              instr_list.Append(mov_instr);
+              return;
+            }
+          }
           auto left_temp = src_binop_exp->left_->Munch(instr_list, fs);
           std::string instr_assem = "movq " + std::to_string(right_const_exp->consti_) + "(`s0), `d0";
           auto dst_list = new temp::TempList();
@@ -374,6 +598,28 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
     */
     auto dst_temp = dst_->Munch(instr_list, fs); 
     auto src_mem_exp = static_cast<tree::MemExp *>(src_);
+    /**
+     * For GC, if src temp is a frame pointer, we should handle it specially
+    */
+    if(typeid(*(src_mem_exp->exp_)) == typeid(tree::TempExp)){
+      auto src_temp_exp = static_cast<tree::TempExp *>(src_mem_exp->exp_);
+      if(src_temp_exp->temp_ == reg_manager->FramePointer()){
+        std::string framesize_label = std::string(fs) + "_framesize";
+        std::string instr_assem = "movq " + framesize_label + "(`s0), `d0";
+        auto dst_list = new temp::TempList();
+        dst_list->Append(dst_temp);
+        auto src_list = new temp::TempList();
+        src_list->Append(reg_manager->StackPointer());
+        assem::Instr* mov_instr = new assem::OperInstr(
+          instr_assem,
+          dst_list,
+          src_list,
+          nullptr
+        );
+        instr_list.Append(mov_instr);
+        return;
+      }
+    }
     auto src_temp = src_mem_exp->exp_->Munch(instr_list, fs);
     std::string instr_assem = "movq (`s0), `d0";
     auto dst_list = new temp::TempList();
@@ -633,6 +879,37 @@ temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
         */
         auto left_const_exp = static_cast<tree::ConstExp *>(binop_exp->left_);
         auto result_reg = temp::TempFactory::NewTemp(false);
+        /**
+         * For GC, if right temp is a frame pointer, we should handle it specially
+        */
+        if(typeid(*(binop_exp->right_)) == typeid(tree::TempExp)){
+          auto right_temp_exp = static_cast<tree::TempExp *>(binop_exp->right_);
+          if(right_temp_exp->temp_ == reg_manager->FramePointer()){
+            std::string framesize_label = std::string(fs) + "_framesize";
+            std::string instr_assem = "";
+            if(left_const_exp->consti_ > 0){
+              instr_assem = "movq (" + framesize_label + "+" + std::to_string(left_const_exp->consti_) + ")(`s0), `d0";
+            }
+            else if(left_const_exp->consti_ < 0){
+              instr_assem = "movq (" + framesize_label + std::to_string(left_const_exp->consti_) + ")(`s0), `d0";
+            }
+            else{
+              instr_assem = "movq " + framesize_label + "(`s0), `d0";
+            }
+            auto dst_list = new temp::TempList();
+            dst_list->Append(result_reg);
+            auto src_list = new temp::TempList();
+            src_list->Append(reg_manager->StackPointer());
+            assem::Instr* mov_instr = new assem::OperInstr(
+              instr_assem,
+              dst_list,
+              src_list,
+              nullptr
+            );
+            instr_list.Append(mov_instr);
+            return result_reg;
+          }
+        }
         auto right_temp = binop_exp->right_->Munch(instr_list, fs);
         std::string instr_assem = "movq " + std::to_string(left_const_exp->consti_) + "(`s0), `d0";
         auto dst_list = new temp::TempList();
@@ -658,6 +935,37 @@ temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
         */
         auto right_const_exp = static_cast<tree::ConstExp *>(binop_exp->right_);
         auto result_reg = temp::TempFactory::NewTemp(false);
+        /**
+         * For GC, if left temp is a frame pointer, we should handle it specially
+        */
+        if(typeid(*(binop_exp->left_)) == typeid(tree::TempExp)){
+          auto left_temp_exp = static_cast<tree::TempExp *>(binop_exp->left_);
+          if(left_temp_exp->temp_ == reg_manager->FramePointer()){
+            std::string framesize_label = std::string(fs) + "_framesize";
+            std::string instr_assem = "";
+            if(right_const_exp->consti_ > 0){
+              instr_assem = "movq (" + framesize_label + "+" + std::to_string(right_const_exp->consti_) + ")(`s0), `d0";
+            }
+            else if(right_const_exp->consti_ < 0){
+              instr_assem = "movq (" + framesize_label + std::to_string(right_const_exp->consti_) + ")(`s0), `d0";
+            }
+            else{
+              instr_assem = "movq " + framesize_label + "(`s0), `d0";
+            }
+            auto dst_list = new temp::TempList();
+            dst_list->Append(result_reg);
+            auto src_list = new temp::TempList();
+            src_list->Append(reg_manager->StackPointer());
+            assem::Instr* mov_instr = new assem::OperInstr(
+              instr_assem,
+              dst_list,
+              src_list,
+              nullptr
+            );
+            instr_list.Append(mov_instr);
+            return result_reg;
+          }
+        }
         auto left_temp = binop_exp->left_->Munch(instr_list, fs);
         std::string instr_assem = "movq " + std::to_string(right_const_exp->consti_) + "(`s0), `d0";
         auto dst_list = new temp::TempList();
@@ -681,6 +989,28 @@ temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
    *    |
   */
   auto result_reg = temp::TempFactory::NewTemp(false);
+  /**
+   * For GC, if temp is a frame pointer, we should handle it specially
+  */
+  if(typeid(*exp_) == typeid(tree::TempExp)){
+    auto temp_exp = static_cast<tree::TempExp *>(exp_);
+    if(temp_exp->temp_ == reg_manager->FramePointer()){
+      std::string framesize_label = std::string(fs) + "_framesize";
+      std::string instr_assem = "movq " + framesize_label + "(`s0), `d0";
+      auto dst_list = new temp::TempList();
+      dst_list->Append(result_reg);
+      auto src_list = new temp::TempList();
+      src_list->Append(reg_manager->StackPointer());
+      assem::Instr* mov_instr = new assem::OperInstr(
+        instr_assem,
+        dst_list,
+        src_list,
+        nullptr
+      );
+      instr_list.Append(mov_instr);
+      return result_reg;
+    }
+  }
   auto src_temp = exp_->Munch(instr_list, fs);
   std::string instr_assem = "movq (`s0), `d0";
   auto dst_list = new temp::TempList();

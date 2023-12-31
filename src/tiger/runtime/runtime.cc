@@ -76,14 +76,21 @@ EXTERNC int *alloc_record(struct string *descriptor) {
   /**
    * except fields, we need one more word to store the descriptor
   */
-  int size = (descriptor->length + 1) * gc::TigerHeap::WORD_SIZE;
+  int size = (descriptor->length + 2) * gc::TigerHeap::WORD_SIZE;
   p = a = (int *)tiger_heap->Allocate(size);
   if(!p) {
     tiger_heap->GC();
     p = a = (int *)tiger_heap->Allocate(size);
   }
   for (i = 0; i < size; i += sizeof(int)) *p++ = 0;
-  auto descriptor_ptr = reinterpret_cast<struct string**>(a);
+  auto label_ptr = reinterpret_cast<char**>(a);
+  if(typeid(*tiger_heap) == typeid(gc::DerivedHeap)){
+    *label_ptr = static_cast<gc::DerivedHeap*>(tiger_heap)->getRecordLabel();
+  }
+  else{
+    std::cout << "Error: tiger_heap is not a DerivedHeap!" << std::endl;
+  }
+  auto descriptor_ptr = reinterpret_cast<struct string**>(label_ptr + 1);
   *descriptor_ptr = descriptor;
   /**
    * move the pointer to the first field
@@ -123,6 +130,7 @@ int main() {
   }
   // Change it to your own implementation after implement heap and delete the comment!
   // tiger_heap = new gc::TigerHeap();
+  tiger_heap = new gc::DerivedHeap();
   tiger_heap->Initialize(TIGER_HEAP_SIZE);
   return tigermain(0 /* static link */);
 }

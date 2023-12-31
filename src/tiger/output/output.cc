@@ -1,6 +1,7 @@
 #include "tiger/output/output.h"
 
 #include <cstdio>
+#include <regex>
 
 #include "tiger/output/logger.h"
 #include "tiger/runtime/gc/roots/roots.h"
@@ -72,6 +73,8 @@ void generatePointerMap(frame::Frame *frame, fg::FNodeListPtr fnode_list, graph:
     }
   }
 
+  std::vector<int> initialized_offsets;
+
   auto fnodes = fnode_list->GetList();
   for (auto fnode = fnodes.begin(); fnode != fnodes.end(); fnode++) {
     auto instr = (*fnode)->NodeInfo();
@@ -116,7 +119,7 @@ void generatePointerMap(frame::Frame *frame, fg::FNodeListPtr fnode_list, graph:
               }
             }
           }
-          pointermap.root_offsets = root_offsets;
+          pointermap.root_offsets = initialized_offsets;
           pointermap.endmap = "1";
           if(pointermap_list.empty()){
             pointermap_list.push_back(pointermap);
@@ -124,6 +127,44 @@ void generatePointerMap(frame::Frame *frame, fg::FNodeListPtr fnode_list, graph:
           else{
             pointermap_list.back().next_label_ = pointermap.label_;
             pointermap_list.push_back(pointermap);
+          }
+        }
+      }
+      /**
+       * But how do we know a stack slot has been initialized
+       * as a real pointer? I think we should do liveness analysis
+       * for stack slot here. Here is just a naive implementation.
+      */
+      else if(assem_str.substr(0, 4) == "movq"){
+        std::string framesize_label = frame->GetLabel() + "_framesize";
+        // If assem_str contains framesize_label, it means this instruction is a stack slot operation
+        if(assem_str.find(framesize_label) != std::string::npos){
+          // We use regular expression to find the offset of the stack slot
+          std::regex reg(framesize_label + "([+-]?[0-9]+)");
+          std::smatch match;
+          std::regex_search(assem_str, match, reg);
+          int offset = 0;
+          if(match.size() > 1){
+            offset = std::stoi(match[1].str());
+          }
+          bool is_in_root_offsets = false;
+          for(auto root_offset : root_offsets){
+            if(root_offset == offset){
+              is_in_root_offsets = true;
+              break;
+            }
+          }
+          if(is_in_root_offsets){
+            bool is_in_initialized_offsets = false;
+            for(auto initialized_offset : initialized_offsets){
+              if(initialized_offset == offset){
+                is_in_initialized_offsets = true;
+                break;
+              }
+            }
+            if(!is_in_initialized_offsets){
+              initialized_offsets.push_back(offset);
+            }
           }
         }
       }
