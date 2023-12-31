@@ -170,6 +170,8 @@ void generatePointerMap(frame::Frame *frame, fg::FNodeListPtr fnode_list, graph:
       }
     }
   }
+
+  pointermap_list.back().next_label_ = "0";
 }
 
 void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {

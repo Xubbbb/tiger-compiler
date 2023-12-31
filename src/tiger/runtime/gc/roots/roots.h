@@ -1,6 +1,7 @@
 #ifndef TIGER_RUNTIME_GC_ROOTS_H
 #define TIGER_RUNTIME_GC_ROOTS_H
 
+// #include "tiger/runtime/gc/heap/heap.h"
 #include <iostream>
 
 namespace gc {
@@ -35,6 +36,14 @@ public:
 
 class Roots {
   // Todo(lab7): define some member and methods here to keep track of gc roots;
+public:
+  std::vector<GCPointerMap> pointermaps_;
+  std::vector<uint64_t*> roots_;
+  Roots(){
+    getPointerMaps();
+  }
+  void findRoots();
+  void getPointerMaps();
 };
 
 }
