@@ -229,6 +229,7 @@ void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
     allocation = reg_allocator.TransferResult();
     il = allocation->il_;
     color = temp::Map::LayerMap(reg_manager->temp_map_, allocation->coloring_);
+    //! A segmentation fault will occur in calling generatePointerMap()
     generatePointerMap(frame_, reg_allocator.color_->flow_fac->GetFlowGraph()->Nodes(), reg_allocator.color_->live_fac->in_.get(), color);
   }
 
