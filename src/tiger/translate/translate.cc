@@ -565,7 +565,7 @@ tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   auto record_ty = static_cast<type::RecordTy*>(ty_res);
   auto exp_field_list = fields_->GetList();
   auto result_reg = temp::TempFactory::NewTemp(true);
-  // const auto ALLOC_SIZE = exp_field_list.size() * reg_manager->WordSize();
+  const auto ALLOC_SIZE = exp_field_list.size() * reg_manager->WordSize();
   /**
    * change alloc_record's param from a int to a pointer to descriptor
   */
@@ -574,8 +574,8 @@ tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     frame::ExternalCall(
       "alloc_record",
       new tree::ExpList{
-        // new tree::ConstExp(ALLOC_SIZE)
-        new tree::NameExp(record_ty->label_)
+        new tree::ConstExp(ALLOC_SIZE)
+        // new tree::NameExp(record_ty->label_)
       }
     )
   );
