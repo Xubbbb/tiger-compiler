@@ -95,7 +95,16 @@ void Color::Build(){
             }
         }
         moveList->Enter(node, node_moveList);
-        auto node_degree = new int(node->OutDegree());
+        int *node_degree = new int(0);
+        if(precolored->Contain(node)){
+            /**
+             * If a node is precolored, we should set its degree to a large number
+            */
+            *node_degree = 1000;
+        }
+        else{
+            *node_degree = node->OutDegree();
+        }
         degree->Enter(node, node_degree);
     }
 }
