@@ -135,7 +135,7 @@ void generatePointerMap(frame::Frame *frame, fg::FNodeListPtr fnode_list, graph:
        * as a real pointer? I think we should do liveness analysis
        * for stack slot here. Here is just a naive implementation.
       */
-      else if(assem_str.substr(0, 4) == "movq"){
+      else if(assem_str.substr(0, 4) == "movq" || assem_str.substr(0, 4) == "leaq"){
         std::string framesize_label = frame->GetLabel() + "_framesize";
         // If assem_str contains framesize_label, it means this instruction is a stack slot operation
         if(assem_str.find(framesize_label) != std::string::npos){

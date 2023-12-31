@@ -676,6 +676,38 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
        *    CONST
       */
       auto left_const_exp = static_cast<tree::ConstExp *>(left_);
+      /**
+       * For GC, if right temp is a frame pointer, we should handle it specially
+      */
+      if(typeid(*right_) == typeid(tree::TempExp)){
+        auto right_temp_exp = static_cast<tree::TempExp *>(right_);
+        if(right_temp_exp->temp_ == reg_manager->FramePointer()){
+          std::string framesize_label = std::string(fs) + "_framesize";
+          auto result_reg = temp::TempFactory::NewTemp(false);
+          std::string instr_assem = "";
+          if(left_const_exp->consti_ > 0){
+            instr_assem = "leaq (" + framesize_label + "+" + std::to_string(left_const_exp->consti_) + ")(`s0), `d0";
+          }
+          else if(left_const_exp->consti_ < 0){
+            instr_assem = "leaq (" + framesize_label + std::to_string(left_const_exp->consti_) + ")(`s0), `d0";
+          }
+          else{
+            instr_assem = "leaq " + framesize_label + "(`s0), `d0";
+          }
+          auto dst_list = new temp::TempList();
+          dst_list->Append(result_reg);
+          auto src_list = new temp::TempList();
+          src_list->Append(reg_manager->StackPointer());
+          assem::Instr* lea_instr = new assem::OperInstr(
+            instr_assem,
+            dst_list,
+            src_list,
+            nullptr
+          );
+          instr_list.Append(lea_instr);
+          return result_reg;
+        }
+      }
       auto right_temp = right_->Munch(instr_list, fs);
       auto result_reg = temp::TempFactory::NewTemp(right_temp->is_pointer);
       std::string instr_assem = "leaq " + std::to_string(left_const_exp->consti_) + "(`s0), `d0";
@@ -701,6 +733,38 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
        *          CONST
       */
       auto right_const_exp = static_cast<tree::ConstExp *>(right_);
+      /**
+       * For GC, if left temp is a frame pointer, we should handle it specially
+      */
+      if(typeid(*left_) == typeid(tree::TempExp)){
+        auto left_temp_exp = static_cast<tree::TempExp *>(left_);
+        if(left_temp_exp->temp_ == reg_manager->FramePointer()){
+          std::string framesize_label = std::string(fs) + "_framesize";
+          auto result_reg = temp::TempFactory::NewTemp(false);
+          std::string instr_assem = "";
+          if(right_const_exp->consti_ > 0){
+            instr_assem = "leaq (" + framesize_label + "+" + std::to_string(right_const_exp->consti_) + ")(`s0), `d0";
+          }
+          else if(right_const_exp->consti_ < 0){
+            instr_assem = "leaq (" + framesize_label + std::to_string(right_const_exp->consti_) + ")(`s0), `d0";
+          }
+          else{
+            instr_assem = "leaq " + framesize_label + "(`s0), `d0";
+          }
+          auto dst_list = new temp::TempList();
+          dst_list->Append(result_reg);
+          auto src_list = new temp::TempList();
+          src_list->Append(reg_manager->StackPointer());
+          assem::Instr* lea_instr = new assem::OperInstr(
+            instr_assem,
+            dst_list,
+            src_list,
+            nullptr
+          );
+          instr_list.Append(lea_instr);
+          return result_reg;
+        }
+      }
       auto left_temp = left_->Munch(instr_list, fs);
       auto result_reg = temp::TempFactory::NewTemp(left_temp->is_pointer);
       std::string instr_assem = "leaq " + std::to_string(right_const_exp->consti_) + "(`s0), `d0";

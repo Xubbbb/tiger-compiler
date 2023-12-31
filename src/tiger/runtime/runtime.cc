@@ -97,6 +97,7 @@ EXTERNC int *alloc_record(struct string *descriptor) {
    * so the Tiger module won't feel the descriptor
   */
   a = reinterpret_cast<int*>(descriptor_ptr + 1);
+  printf("a new record pointer : %p\n", a);
   return a;
 }
 

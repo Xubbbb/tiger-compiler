@@ -42,7 +42,7 @@ public:
   Roots(){
     getPointerMaps();
   }
-  void findRoots();
+  void findRoots(uint64_t *sp);
   void getPointerMaps();
 };
 

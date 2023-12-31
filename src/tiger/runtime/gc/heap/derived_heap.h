@@ -2,6 +2,7 @@
 
 #include "heap.h"
 #include <vector>
+#include "../roots/roots.h"
 
 namespace gc {
 /**
@@ -28,10 +29,13 @@ private:
 
   char* ArrayLabel;
   char* RecordLabel;
+  Roots* roots;
 public:
   DerivedHeap()
-    : heap_start(nullptr), heap_end(nullptr), from(nullptr), to(nullptr), from_offset(0), scan(nullptr), next(nullptr), ArrayLabel(nullptr), RecordLabel(nullptr)
-  {}
+    : heap_start(nullptr), heap_end(nullptr), from(nullptr), to(nullptr), from_offset(0), scan(nullptr), next(nullptr), ArrayLabel(nullptr), RecordLabel(nullptr), roots(nullptr)
+  {
+    roots = new Roots();
+  }
   char *Allocate(uint64_t size) override;
   uint64_t Used() const override;
   uint64_t MaxFree() const override;
