@@ -148,8 +148,8 @@ void Roots::findRoots(uint64_t* sp){
       // auto root_ptr = (uint64_t*)(*(frame_it + (pointer_map.root_offsets[i] / TigerHeap::WORD_SIZE)));
       auto root_ptr = frame_it + (pointer_map.root_offsets[i] / TigerHeap::WORD_SIZE);
       //!debug//
-      printf("root_ptr : %p\n", root_ptr);
-      printf("root_ptr value : %p\n", (uint64_t*)(*root_ptr));
+      // printf("root_ptr : %p\n", root_ptr);
+      // printf("root_ptr value : %p\n", (uint64_t*)(*root_ptr));
       //!debug//
       roots_.push_back(root_ptr);
     }

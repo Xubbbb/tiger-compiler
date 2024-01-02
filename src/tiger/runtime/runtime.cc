@@ -9,7 +9,11 @@
 #define EXTERNC extern "C" 
 #endif
 
-#define TIGER_HEAP_SIZE ( 1 << 20 )
+/**
+ * Because we use copying collection algorithm, we need 2x heap size 
+ * 1 << 20 -> 1 << 21
+*/
+#define TIGER_HEAP_SIZE ( 1 << 21 )
 
 EXTERNC int tigermain(int);
 gc::TigerHeap *tiger_heap = nullptr;
@@ -97,7 +101,7 @@ EXTERNC int *alloc_record(struct string *descriptor) {
    * so the Tiger module won't feel the descriptor
   */
   a = reinterpret_cast<int*>(descriptor_ptr + 1);
-  printf("a new record pointer : %p\n", a);
+  // printf("a new record pointer : %p\n", a);
   return a;
 }
 
