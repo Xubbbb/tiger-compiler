@@ -5,6 +5,13 @@
 #include "../roots/roots.h"
 
 namespace gc {
+
+struct string {
+  int length;
+  unsigned char chars[1];
+};
+
+
 /**
  * Notice: This is only a simulated heap
  * We will use copy collection algorithm(cheney) to implement our garbage collector
@@ -21,18 +28,18 @@ class DerivedHeap : public TigerHeap {
 private:
   char* heap_start;
   char* heap_end;
-  char* from;
-  char* to;
+  uint64_t from;
+  uint64_t to;
   uint64_t from_offset;
-  char* scan;
-  char* next;
+  uint64_t scan;
+  uint64_t next;
 
   char* ArrayLabel;
   char* RecordLabel;
   Roots* roots;
 public:
   DerivedHeap()
-    : heap_start(nullptr), heap_end(nullptr), from(nullptr), to(nullptr), from_offset(0), scan(nullptr), next(nullptr), ArrayLabel(nullptr), RecordLabel(nullptr), roots(nullptr)
+    : heap_start(nullptr), heap_end(nullptr), from(0), to(0), from_offset(0), scan(0), next(0), ArrayLabel(nullptr), RecordLabel(nullptr), roots(nullptr)
   {
     roots = new Roots();
   }
@@ -41,6 +48,7 @@ public:
   uint64_t MaxFree() const override;
   void Initialize(uint64_t size) override;
   void GC() override;
+  uint64_t* Forward(uint64_t* addr);
   char* getArrayLabel() const{
     return ArrayLabel;
   }

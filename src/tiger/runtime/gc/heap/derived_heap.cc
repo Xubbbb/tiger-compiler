@@ -11,11 +11,11 @@ char* DerivedHeap::Allocate(uint64_t size) {
   /**
    * 1. Check if there is enough space in from-space
   */
-  if((heap_start == from && res + size > to) || (res + size > heap_end)){
+  if(((uint64_t)heap_start == from && res + size > to) || (res + size > (uint64_t)heap_end)){
     return nullptr;
   }
   from_offset += size;
-  return res;
+  return (char*)res;
 }
 
 uint64_t DerivedHeap::Used() const {
@@ -29,11 +29,11 @@ uint64_t DerivedHeap::MaxFree() const {
 void DerivedHeap::Initialize(uint64_t size) {
   heap_start = new char[size];
   heap_end = heap_start + size;
-  from = heap_start;
-  to = heap_start + size / 2;
+  from = (uint64_t)heap_start;
+  to = (uint64_t)heap_start + size / 2;
   from_offset = 0;
-  scan = nullptr;
-  next = nullptr;
+  scan = 0;
+  next = 0;
   ArrayLabel = new char[6];
   strcpy(ArrayLabel, "Array");
   RecordLabel = new char[7];
@@ -51,6 +51,74 @@ void DerivedHeap::GC() {
   uint64_t* sp;
   GET_TIGER_STACK(sp);
   roots->findRoots(sp);
+
+  scan = to;
+  next = to;
+  for(auto root : roots->roots_){
+    *root = (uint64_t)Forward(root);
+  }
+  while(scan < next){
+    auto label_ptr = (char*)(*(uint64_t*)scan);
+    if(label_ptr == RecordLabel){
+      auto descriptor_ptr = (struct string *)(*((uint64_t*)scan + 1));
+      auto descriptor = *descriptor_ptr;
+      for(int i = 0;i < descriptor.length;++i){
+        if(descriptor.chars[i] == '1'){
+          auto field_ptr = (uint64_t*)(scan) + 2 + i;
+          *field_ptr = (uint64_t)Forward(field_ptr);
+        }
+      }
+      scan += (descriptor.length + 2) * TigerHeap::WORD_SIZE;
+    }
+    else if(label_ptr == ArrayLabel){
+      printf("ArrayLabel GC\n");
+    }
+    else{
+      printf("Error: label_ptr is not RecordLabel or ArrayLabel\n");
+    }
+  }
+
+  /**
+   * Swap from-space and to-space
+  */
+  from_offset = next - to;
+  auto tmp = from;
+  from = to;
+  to = tmp;
+  roots->roots_.clear();
+}
+
+uint64_t* DerivedHeap::Forward(uint64_t* addr){
+  if(*addr >= 2 * WORD_SIZE){
+    auto obj_head = *addr - 2 * WORD_SIZE;
+    if(obj_head >= from && obj_head < from + from_offset){
+      auto label_ptr = (char*)(*(uint64_t*)obj_head);
+      if(label_ptr == RecordLabel){
+        auto p_f1 = (uint64_t*)(obj_head + 2 * WORD_SIZE);
+        auto descriptor_ptr = (struct string *)(*((uint64_t*)obj_head + 1));
+        auto descriptor = *descriptor_ptr;
+        if(*p_f1 >= 2 * WORD_SIZE && ((*p_f1 - 2 * WORD_SIZE) >= to && (*p_f1 - 2 * WORD_SIZE) < to + ((uint64_t)(heap_end - heap_start)) / 2)){
+          return (uint64_t*)(*p_f1);
+        }
+        else{
+          auto new_obj = next;
+          next += (descriptor.length + 2) * TigerHeap::WORD_SIZE;
+          memcpy((void*)new_obj, (void*)obj_head, (descriptor.length + 2) * TigerHeap::WORD_SIZE);
+          *p_f1 = new_obj + 2 * WORD_SIZE;
+          return (uint64_t*)(*p_f1);
+        }
+      }
+      else if(label_ptr == ArrayLabel){
+        printf("ArrayLabel forward\n");
+      }
+      else{
+        printf("Error: label_ptr is not RecordLabel or ArrayLabel\n");
+      }
+    }
+    else{
+      return (uint64_t*)(*addr);
+    }
+  }
 }
 
 void Roots::findRoots(uint64_t* sp){
@@ -77,9 +145,11 @@ void Roots::findRoots(uint64_t* sp){
     // Don't forget to skip the return address
     frame_it += pointer_map.framesize / TigerHeap::WORD_SIZE + 1;
     for(int i = 0;i < pointer_map.root_offsets.size();++i){
-      auto root_ptr = (uint64_t*)(*(frame_it + (pointer_map.root_offsets[i] / TigerHeap::WORD_SIZE)));
+      // auto root_ptr = (uint64_t*)(*(frame_it + (pointer_map.root_offsets[i] / TigerHeap::WORD_SIZE)));
+      auto root_ptr = frame_it + (pointer_map.root_offsets[i] / TigerHeap::WORD_SIZE);
       //!debug//
       printf("root_ptr : %p\n", root_ptr);
+      printf("root_ptr value : %p\n", (uint64_t*)(*root_ptr));
       //!debug//
       roots_.push_back(root_ptr);
     }
@@ -111,18 +181,18 @@ void Roots::getPointerMaps(){
     }
   }
   //!debug//
-  printf("getPointerMaps finished\n");
-  for(int i = 0;i < pointermaps_.size();++i){
-    printf("pointer_map label %d : \n", i);
-    printf("next_addr_ : %p\n", (uint64_t*)pointermaps_[i].next_addr_);
-    printf("key_addr_ : %p\n", (uint64_t*)pointermaps_[i].key_addr_);
-    printf("framesize : %d\n", pointermaps_[i].framesize);
-    printf("root_offsets : \n");
-    for(int j = 0;j < pointermaps_[i].root_offsets.size();++j){
-      printf("%d ", pointermaps_[i].root_offsets[j]);
-    }
-    printf("\n");
-  }
+  // printf("getPointerMaps finished\n");
+  // for(int i = 0;i < pointermaps_.size();++i){
+  //   printf("pointer_map label %d : \n", i);
+  //   printf("next_addr_ : %p\n", (uint64_t*)pointermaps_[i].next_addr_);
+  //   printf("key_addr_ : %p\n", (uint64_t*)pointermaps_[i].key_addr_);
+  //   printf("framesize : %d\n", pointermaps_[i].framesize);
+  //   printf("root_offsets : \n");
+  //   for(int j = 0;j < pointermaps_[i].root_offsets.size();++j){
+  //     printf("%d ", pointermaps_[i].root_offsets[j]);
+  //   }
+  //   printf("\n");
+  // }
   //!debug//
 }
 
