@@ -27,6 +27,7 @@ uint64_t DerivedHeap::MaxFree() const {
 }
 
 void DerivedHeap::Initialize(uint64_t size) {
+  size = size << 2;
   heap_start = new char[size];
   heap_end = heap_start + size;
   from = (uint64_t)heap_start;
