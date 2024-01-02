@@ -71,7 +71,9 @@ void DerivedHeap::GC() {
       scan += (descriptor.length + 2) * TigerHeap::WORD_SIZE;
     }
     else if(label_ptr == ArrayLabel){
-      printf("ArrayLabel GC\n");
+      // printf("ArrayLabel GC\n");
+      auto array_length = *(uint64_t*)(scan + WORD_SIZE);
+      scan += (array_length + 2) * TigerHeap::WORD_SIZE;
     }
     else{
       printf("Error: label_ptr is not RecordLabel or ArrayLabel\n");
@@ -109,7 +111,12 @@ uint64_t* DerivedHeap::Forward(uint64_t* addr){
         }
       }
       else if(label_ptr == ArrayLabel){
-        printf("ArrayLabel forward\n");
+        // printf("ArrayLabel forward\n");
+        auto array_length = *(uint64_t*)(obj_head + WORD_SIZE);
+        auto new_obj = next;
+        next += (array_length + 2) * TigerHeap::WORD_SIZE;
+        memcpy((void*)new_obj, (void*)obj_head, (array_length + 2) * TigerHeap::WORD_SIZE);
+        return (uint64_t*)(new_obj + 2 * WORD_SIZE);
       }
       else{
         printf("Error: label_ptr is not RecordLabel or ArrayLabel\n");

@@ -53,14 +53,20 @@ EXTERNC uint64_t MaxFree() {
 
 EXTERNC long *init_array(int size, long init) {
   int i;
-  uint64_t allocate_size = size * sizeof(long);
+  uint64_t allocate_size = (size + 2) * sizeof(long);
   long *a = (long *)tiger_heap->Allocate(allocate_size);
   if(!a) {
     tiger_heap->GC();
     a = (long*)tiger_heap->Allocate(allocate_size);
   }
-  for (i = 0; i < size; i++) a[i] = init;
-  return a;
+  for (i = 2; i < size; i++) a[i] = init;
+  a[0] = uint64_t(static_cast<gc::DerivedHeap*>(tiger_heap)->getArrayLabel());
+  /**
+   * We don't consider the case of Array of pointer
+   * so we just store the size of the array in the first word
+  */
+  a[1] = size;
+  return (a + 2);
 }
 
 struct string {
