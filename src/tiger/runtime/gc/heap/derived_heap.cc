@@ -27,7 +27,11 @@ uint64_t DerivedHeap::MaxFree() const {
 }
 
 void DerivedHeap::Initialize(uint64_t size) {
-  size = size << 2;
+  /**
+   * Because we use copying collection algorithm, 
+   * we need 2x heap size(other wise our heap will be still full after one GC)
+  */
+  size = size << 1;
   heap_start = new char[size];
   heap_end = heap_start + size;
   from = (uint64_t)heap_start;
@@ -35,10 +39,6 @@ void DerivedHeap::Initialize(uint64_t size) {
   from_offset = 0;
   scan = 0;
   next = 0;
-  ArrayLabel = new char[6];
-  strcpy(ArrayLabel, "Array");
-  RecordLabel = new char[7];
-  strcpy(RecordLabel, "Record");
 }
 
 void DerivedHeap::GC() {
@@ -52,32 +52,34 @@ void DerivedHeap::GC() {
   uint64_t* sp;
   GET_TIGER_STACK(sp);
   roots->findRoots(sp);
-
+  // printf("from_offset before GC: %ld\n", from_offset);
   scan = to;
   next = to;
   for(auto root : roots->roots_){
     *root = (uint64_t)Forward(root);
   }
   while(scan < next){
-    auto label_ptr = (char*)(*(uint64_t*)scan);
-    if(label_ptr == RecordLabel){
-      auto descriptor_ptr = (struct string *)(*((uint64_t*)scan + 1));
-      auto descriptor = *descriptor_ptr;
-      for(int i = 0;i < descriptor.length;++i){
-        if(descriptor.chars[i] == '1'){
-          auto field_ptr = (uint64_t*)(scan) + 2 + i;
+    auto descriptor_ptr = (struct string *)(*(uint64_t*)scan);
+    auto chars_length = descriptor_ptr->length;
+    //! When we use 'auto descriptor = *descriptor_ptr;'
+    //! the content in chars will be changed, I don't know why???
+    // auto descriptor = *descriptor_ptr;
+    std::string str = "";
+    for(int i = 0;i < chars_length;++i){
+      str += (char)(descriptor_ptr->chars[i]);
+    }
+    if(str.find("Array") != std::string::npos){
+      auto array_length = std::stoi(str.substr(5, str.length() - 5));
+      scan += (array_length + 1) * TigerHeap::WORD_SIZE;
+    }
+    else{
+      for(int i = 0;i < chars_length;++i){
+        if(descriptor_ptr->chars[i] == '1'){
+          auto field_ptr = (uint64_t*)(scan) + 1 + i;
           *field_ptr = (uint64_t)Forward(field_ptr);
         }
       }
-      scan += (descriptor.length + 2) * TigerHeap::WORD_SIZE;
-    }
-    else if(label_ptr == ArrayLabel){
-      // printf("ArrayLabel GC\n");
-      auto array_length = *(uint64_t*)(scan + WORD_SIZE);
-      scan += (array_length + 2) * TigerHeap::WORD_SIZE;
-    }
-    else{
-      printf("Error: label_ptr is not RecordLabel or ArrayLabel\n");
+      scan += (chars_length + 1) * TigerHeap::WORD_SIZE;
     }
   }
 
@@ -89,38 +91,41 @@ void DerivedHeap::GC() {
   from = to;
   to = tmp;
   roots->roots_.clear();
+  // printf("from_offset after GC: %ld\n", from_offset);
 }
 
 uint64_t* DerivedHeap::Forward(uint64_t* addr){
-  if(*addr >= 2 * WORD_SIZE){
-    auto obj_head = *addr - 2 * WORD_SIZE;
+  if(*addr >= WORD_SIZE){
+    auto obj_head = *addr - WORD_SIZE;
     if(obj_head >= from && obj_head < from + from_offset){
-      auto label_ptr = (char*)(*(uint64_t*)obj_head);
-      if(label_ptr == RecordLabel){
-        auto p_f1 = (uint64_t*)(obj_head + 2 * WORD_SIZE);
-        auto descriptor_ptr = (struct string *)(*((uint64_t*)obj_head + 1));
-        auto descriptor = *descriptor_ptr;
-        if(*p_f1 >= 2 * WORD_SIZE && ((*p_f1 - 2 * WORD_SIZE) >= to && (*p_f1 - 2 * WORD_SIZE) < to + ((uint64_t)(heap_end - heap_start)) / 2)){
+      auto descriptor_ptr = (struct string *)(*((uint64_t*)obj_head));
+      //! When we use 'auto descriptor = *descriptor_ptr;'
+      //! the content in chars will be changed, I don't know why???
+      // auto descriptor = *descriptor_ptr;
+      auto chars_length = descriptor_ptr->length;
+      std::string str = "";
+      for(int i = 0;i < chars_length;++i){
+        str += (char)(descriptor_ptr->chars[i]);
+      }
+      if(str.find("Array") != std::string::npos){
+        auto array_length = std::stoi(str.substr(5, str.length() - 5));
+        auto new_obj = next;
+        next += (array_length + 1) * TigerHeap::WORD_SIZE;
+        memcpy((void*)new_obj, (void*)obj_head, (array_length + 1) * TigerHeap::WORD_SIZE);
+        return (uint64_t*)(new_obj + WORD_SIZE);
+      }
+      else{
+        auto p_f1 = (uint64_t*)(obj_head + WORD_SIZE);
+        if(*p_f1 >= WORD_SIZE && ((*p_f1 - WORD_SIZE) >= to && (*p_f1 - WORD_SIZE) < to + ((uint64_t)(heap_end - heap_start)) / 2)){
           return (uint64_t*)(*p_f1);
         }
         else{
           auto new_obj = next;
-          next += (descriptor.length + 2) * TigerHeap::WORD_SIZE;
-          memcpy((void*)new_obj, (void*)obj_head, (descriptor.length + 2) * TigerHeap::WORD_SIZE);
-          *p_f1 = new_obj + 2 * WORD_SIZE;
+          next += (chars_length + 1) * TigerHeap::WORD_SIZE;
+          memcpy((void*)new_obj, (void*)obj_head, (chars_length + 1) * TigerHeap::WORD_SIZE);
+          *p_f1 = new_obj + WORD_SIZE;
           return (uint64_t*)(*p_f1);
         }
-      }
-      else if(label_ptr == ArrayLabel){
-        // printf("ArrayLabel forward\n");
-        auto array_length = *(uint64_t*)(obj_head + WORD_SIZE);
-        auto new_obj = next;
-        next += (array_length + 2) * TigerHeap::WORD_SIZE;
-        memcpy((void*)new_obj, (void*)obj_head, (array_length + 2) * TigerHeap::WORD_SIZE);
-        return (uint64_t*)(new_obj + 2 * WORD_SIZE);
-      }
-      else{
-        printf("Error: label_ptr is not RecordLabel or ArrayLabel\n");
       }
     }
     else{
@@ -202,6 +207,17 @@ void Roots::getPointerMaps(){
   //   printf("\n");
   // }
   //!debug//
+}
+
+struct string *DerivedHeap::newArrayLabel(int size){
+  std::string str = "Array";
+  str += std::to_string(size);
+  size_t struct_size = sizeof(struct string) + str.size();
+  struct string* res = (struct string*)malloc(struct_size);
+  res->length = str.size();
+  memcpy(res->chars, str.data(), str.size());
+  std::string str2((char*)res->chars, res->length);
+  return res;
 }
 
 } // namespace gc

@@ -34,12 +34,10 @@ private:
   uint64_t scan;
   uint64_t next;
 
-  char* ArrayLabel;
-  char* RecordLabel;
   Roots* roots;
 public:
   DerivedHeap()
-    : heap_start(nullptr), heap_end(nullptr), from(0), to(0), from_offset(0), scan(0), next(0), ArrayLabel(nullptr), RecordLabel(nullptr), roots(nullptr)
+    : heap_start(nullptr), heap_end(nullptr), from(0), to(0), from_offset(0), scan(0), next(0), roots(nullptr)
   {
     roots = new Roots();
   }
@@ -49,12 +47,7 @@ public:
   void Initialize(uint64_t size) override;
   void GC() override;
   uint64_t* Forward(uint64_t* addr);
-  char* getArrayLabel() const{
-    return ArrayLabel;
-  }
-  char* getRecordLabel() const{
-    return RecordLabel;
-  }
+  struct string* newArrayLabel(int size);
 };
 
 } // namespace gc

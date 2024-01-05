@@ -9,11 +9,7 @@
 #define EXTERNC extern "C" 
 #endif
 
-/**
- * Because we use copying collection algorithm, we need 2x heap size 
- * 1 << 20 -> 1 << 21
-*/
-#define TIGER_HEAP_SIZE ( 1 << 21 )
+#define TIGER_HEAP_SIZE ( 1 << 20 )
 
 EXTERNC int tigermain(int);
 gc::TigerHeap *tiger_heap = nullptr;
@@ -53,20 +49,23 @@ EXTERNC uint64_t MaxFree() {
 
 EXTERNC long *init_array(int size, long init) {
   int i;
-  uint64_t allocate_size = (size + 2) * sizeof(long);
+  uint64_t allocate_size = (size + 1) * sizeof(long);
   long *a = (long *)tiger_heap->Allocate(allocate_size);
   if(!a) {
     tiger_heap->GC();
     a = (long*)tiger_heap->Allocate(allocate_size);
+    if(!a){
+      printf("Error: Out of memory!\n");
+      exit(-1);
+    }
   }
-  for (i = 2; i < size; i++) a[i] = init;
-  a[0] = uint64_t(static_cast<gc::DerivedHeap*>(tiger_heap)->getArrayLabel());
+  for (i = 1; i < (size + 1); i++) a[i] = init;
+  a[0] = uint64_t(static_cast<gc::DerivedHeap*>(tiger_heap)->newArrayLabel(size));
   /**
    * We don't consider the case of Array of pointer
    * so we just store the size of the array in the first word
   */
-  a[1] = size;
-  return (a + 2);
+  return (a + 1);
 }
 
 struct string {
@@ -86,21 +85,18 @@ EXTERNC int *alloc_record(struct string *descriptor) {
   /**
    * except fields, we need one more word to store the descriptor
   */
-  int size = (descriptor->length + 2) * gc::TigerHeap::WORD_SIZE;
+  int size = (descriptor->length + 1) * gc::TigerHeap::WORD_SIZE;
   p = a = (int *)tiger_heap->Allocate(size);
   if(!p) {
     tiger_heap->GC();
     p = a = (int *)tiger_heap->Allocate(size);
+    if(!p){
+      printf("Error: Out of memory!\n");
+      exit(-1);
+    }
   }
   for (i = 0; i < size; i += sizeof(int)) *p++ = 0;
-  auto label_ptr = reinterpret_cast<char**>(a);
-  if(typeid(*tiger_heap) == typeid(gc::DerivedHeap)){
-    *label_ptr = static_cast<gc::DerivedHeap*>(tiger_heap)->getRecordLabel();
-  }
-  else{
-    std::cout << "Error: tiger_heap is not a DerivedHeap!" << std::endl;
-  }
-  auto descriptor_ptr = reinterpret_cast<struct string**>(label_ptr + 1);
+  auto descriptor_ptr = reinterpret_cast<struct string**>(a);
   *descriptor_ptr = descriptor;
   /**
    * move the pointer to the first field
