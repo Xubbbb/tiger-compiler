@@ -249,7 +249,6 @@ void LiveGraphFactory::InterfGraph() {
               if(use == reg_manager->StackPointer()){
                 continue;
               }
-              //!maybe wrong here
               if(!live_graph_.moves->Contain(temp_node_map_->Look(use), temp_node_map_->Look(def)) && !live_graph_.moves->Contain(temp_node_map_->Look(def), temp_node_map_->Look(use))){
                 live_graph_.moves->Append(temp_node_map_->Look(def), temp_node_map_->Look(use));
               }

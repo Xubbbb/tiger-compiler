@@ -169,7 +169,6 @@ bool Color::MoveRelated(live::INodePtr n){
 void Color::Simplify(){
     auto n = simplifyWorklist->GetList().front();
     simplifyWorklist->DeleteNode(n);
-    //! maybe wrong
     selectStack->Prepend(n);
     auto adj_list = Adjacent(n)->GetList();
     for(auto m : adj_list){
@@ -195,6 +194,7 @@ void Color::DecrementDegree(live::INodePtr m){
         EnableMoves(m_union_adj);
         spillWorklist->DeleteNode(m);
         if(MoveRelated(m)){
+            // freezeWorklist is low degree move related nodes
             freezeWorklist->Append(m);
         }
         else{
@@ -212,7 +212,6 @@ void Color::EnableMoves(live::INodeListPtr nodes){
         auto node_moves = NodeMoves(n);
         auto node_moves_list = node_moves->GetList();
         for(auto m : node_moves_list){
-            //! maybe wrong
             if(activeMoves->Contain(m.first, m.second)){
                 activeMoves->Delete(m.first, m.second);
                 if(!worklistMoves->Contain(m.first, m.second)){
@@ -246,7 +245,6 @@ void Color::Coalesce(){
         AddWorkList(u);
     }
     else if(precolored->Contain(v) || u->Succ()->Contain(v)){
-        //!maybe wrong
         if(!constrainedMoves->Contain(m.first, m.second)){
             constrainedMoves->Append(m.first, m.second);
         }
@@ -254,7 +252,6 @@ void Color::Coalesce(){
         AddWorkList(v);
     }
     else if((precolored->Contain(u) && OK(v, u)) || (!precolored->Contain(u) && Conservative(Adjacent(u)->Union(Adjacent(v))))){
-        //!maybe wrong
         if(!coalescedMoves->Contain(m.first, m.second)){
             coalescedMoves->Append(m.first, m.second);
         }
@@ -409,6 +406,7 @@ void Color::AssignColors(){
         auto okColors = reg_manager->Registers();
         auto adjList_n = n->Succ()->GetList();
         auto colored_union_precolored = coloredNodes->Union(precolored);
+        // conflict with all adjacent nodes' color
         for(auto w : adjList_n){
             auto w_alias = GetAlias(w);
             if(colored_union_precolored->Contain(w_alias)){

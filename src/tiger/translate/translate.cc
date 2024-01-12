@@ -625,10 +625,12 @@ tr::ExpAndTy *SeqExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   tree::Stm* prev_node = nullptr;
   for(;exp_list_it != exp_list.end();++exp_list_it){
     auto exp_ty = (*exp_list_it)->Translate(venv, tenv, level, label, errormsg);
+    // First
     if(prev_node == nullptr){
       prev_node = exp_ty->exp_->UnNx();
       continue;
     }
+    // Last
     if(exp_list_it == std::prev(exp_list.end())){
       return new tr::ExpAndTy(
         new tr::ExExp(
@@ -759,6 +761,7 @@ tr::ExpAndTy *WhileExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   auto test_label = temp::LabelFactory::NewLabel();
   auto body_label = temp::LabelFactory::NewLabel();
   auto done_label = temp::LabelFactory::NewLabel();
+  // The label is used to implement break
   auto body_exp_ty = body_->Translate(venv, tenv, level, done_label, errormsg);
   test_cx.trues_.DoPatch(body_label);
   test_cx.falses_.DoPatch(done_label);
